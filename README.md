@@ -1,14 +1,7 @@
 aoc2021
 =====
 
-An escript
+QuickStart
+----------
 
-Build
------
-
-    $ rebar3 escriptize
-
-Run
----
-
-    $ _build/default/bin/aoc2021
+rebar3 escriptize && _build/default/bin/aoc2021 day1_2 day1.txt

@@ -5,7 +5,8 @@
 
 %% for running locally
 -export([
-    day1_1/1
+    day1_1/1,
+    day1_2/1
 ]).
 
 %%====================================================================
@@ -24,18 +25,33 @@ main([FunStr, InputFile]) ->
 %%====================================================================
 %% Internal functions
 %%====================================================================
+
 day1_1(File) ->
     Depths = read_integers(File),
-    CountIncreasesFun = fun(Depth, {Previous, IncreaseCount}) ->
-                  case Depth > Previous of
-                      true -> {Depth, IncreaseCount + 1};
-                      false -> {Depth, IncreaseCount}
-                  end
-          end,
-    {_Last, IncreasesCount} = lists:foldl(CountIncreasesFun, {'N/A', 0}, Depths),
-    IncreasesCount.
+    count_increases(Depths).
 
-read_integers(File) ->
-    {ok, BigString} = file:read_file(File),
-    Lines = string:lexemes(BigString, "\n"),
+day1_2(File) ->
+    Depths = read_integers(File),
+    As = [_ | Bs0] = [_, _ | Cs0] = Depths,
+    Bs = Bs0 ++ [0],
+    Cs = Cs0 ++ [0, 0],
+    ABCs = lists:zip3(As, Bs, Cs),
+    Sums = [A + B + C || {A, B, C} <- ABCs],
+    count_increases(Sums).
+
+count_increases(Depths) ->
+    {_Last, IncreasesCount} = lists:foldl(fun count_increases/2, {'N/A', 0}, Depths),
+    IncreasesCount.
+count_increases(Depth, {Previous, IncreasesCount}) when Depth > Previous ->
+    {Depth, IncreasesCount + 1};
+count_increases(Depth, {Previous, IncreasesCount}) when Depth =< Previous ->
+    {Depth, IncreasesCount}.
+
+%%====================================================================
+%% Santa's little helpers
+%%====================================================================
+
+read_integers(Filename) ->
+    {ok, FileContent} = file:read_file(Filename),
+    Lines = string:lexemes(FileContent, "\n"),
     [binary_to_integer(Line) || Line <- Lines].
