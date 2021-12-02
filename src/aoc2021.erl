@@ -8,6 +8,7 @@
 %%====================================================================
 
 %% escript Entry point
+% TODO create day() type and as a side-effect declare all possible Day-atoms
 main([Day, PartStr, InputType]) ->
     io:format("Solving ~s ~s with ~s input.~n", [Day, PartStr, InputType]),
     Mod = list_to_atom(Day),
