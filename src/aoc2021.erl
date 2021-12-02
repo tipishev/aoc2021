@@ -75,19 +75,13 @@ get_position_delta({down, Y}) -> {0, Y}.
 
 day2_2(File) ->
     Commands = read_commands(File),
-    {X, Y} = get_aimed_position(Commands),
+    State0 = #{x => 0, y => 0, aim => 0},
+    #{x := X, y := Y} = lists:foldl(fun update/2, State0, Commands),
     X * Y.
 
-
-get_aimed_position(Commands) ->
-    State0 = #{x => 0, y => 0, aim => 0},
-    #{x := X, y := Y} = lists:foldl(fun update_state/2, State0, Commands),
-    {X, Y}.
-
-update_state({down, X}, State = #{aim := Aim0}) -> State#{aim := Aim0 + X};
-update_state({up, X}, State = #{aim := Aim0}) -> State#{aim := Aim0 - X};
-update_state({forward, X}, State = #{x := X0, y := Y0, aim := Aim}) -> State#{x := X0 + X,
-									      y := Y0 + Aim * X}.
+update({down, D}, State = #{aim := Aim0}) -> State#{aim := Aim0 + D};
+update({up, D}, State = #{aim := Aim0}) -> State#{aim := Aim0 - D};
+update({forward, D}, State = #{x := X0, y := Y0, aim := Aim}) -> State#{x := X0 + D, y := Y0 + Aim * D}.
 
 %%====================================================================
 %% Santa's little helpers
