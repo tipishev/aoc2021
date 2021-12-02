@@ -5,9 +5,8 @@
 
 %% for running locally
 -export([
-    day1_1/1,
-    day1_2/1,
-    day2_1/1
+    day1_1/1, day1_2/1,
+    day2_1/1, day2_2/1
 ]).
 
 %%====================================================================
@@ -52,9 +51,43 @@ count_increases(Depth, {Previous, IncreasesCount}) when Depth =< Previous ->
 
 % day2
 
+% day2.1
+
 day2_1(File) ->
     Commands = read_commands(File),
-    Commands.
+    {X, Y} = get_position(Commands),
+    X * Y.
+
+get_position(Commands) ->
+    Deltas = [get_position_delta(Command) || Command <- Commands],
+    DeltasSum = lists:foldl(
+        fun({Dx, Dy}, {X, Y}) -> {X + Dx, Y + Dy} end,
+        _InitialPosition = {0, 0},
+        Deltas
+    ),
+    DeltasSum.
+
+get_position_delta({forward, X}) -> {X, 0};
+get_position_delta({up, Y}) -> {0, -Y};
+get_position_delta({down, Y}) -> {0, Y}.
+
+% day2.2
+
+day2_2(File) ->
+    Commands = read_commands(File),
+    {X, Y} = get_aimed_position(Commands),
+    X * Y.
+
+
+get_aimed_position(Commands) ->
+    State0 = #{x => 0, y => 0, aim => 0},
+    #{x := X, y := Y} = lists:foldl(fun update_state/2, State0, Commands),
+    {X, Y}.
+
+update_state({down, X}, State = #{aim := Aim0}) -> State#{aim := Aim0 + X};
+update_state({up, X}, State = #{aim := Aim0}) -> State#{aim := Aim0 - X};
+update_state({forward, X}, State = #{x := X0, y := Y0, aim := Aim}) -> State#{x := X0 + X,
+									      y := Y0 + Aim * X}.
 
 %%====================================================================
 %% Santa's little helpers
