@@ -6,7 +6,8 @@
 %% for running locally
 -export([
     day1_1/1,
-    day1_2/1
+    day1_2/1,
+    day2_1/1
 ]).
 
 %%====================================================================
@@ -25,6 +26,8 @@ main([FunStr, InputFile]) ->
 %%====================================================================
 %% Internal functions
 %%====================================================================
+
+% day1
 
 day1_1(File) ->
     Depths = read_integers(File),
@@ -47,6 +50,12 @@ count_increases(Depth, {Previous, IncreasesCount}) when Depth > Previous ->
 count_increases(Depth, {Previous, IncreasesCount}) when Depth =< Previous ->
     {Depth, IncreasesCount}.
 
+% day2
+
+day2_1(File) ->
+    Commands = read_commands(File),
+    Commands.
+
 %%====================================================================
 %% Santa's little helpers
 %%====================================================================
@@ -55,3 +64,21 @@ read_integers(Filename) ->
     {ok, FileContent} = file:read_file(Filename),
     Lines = string:lexemes(FileContent, "\n"),
     [binary_to_integer(Line) || Line <- Lines].
+
+read_commands(Filename) ->
+    {ok, FileContent} = file:read_file(Filename),
+    Lines = string:lexemes(FileContent, "\n"),
+    [
+        begin
+            [DirectionBin, MagnitudeBin] = string:lexemes(Line, " "),
+            Direction = parse_direction(DirectionBin),
+            Magnitude = binary_to_integer(MagnitudeBin),
+            {Direction, Magnitude}
+        end
+        || Line <- Lines
+    ].
+
+% list all possible inputs to avoid binary_to_atom
+parse_direction(<<"forward">>) -> forward;
+parse_direction(<<"down">>) -> down;
+parse_direction(<<"up">>) -> up.
