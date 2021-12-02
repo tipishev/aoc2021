@@ -1,13 +1,13 @@
 -module(day1).
 
 %% API exports
--export([solve/2]).
+-export([part1/1, part2/1]).
 
-solve(part1, File) ->
+part1(File) ->
     Depths = read_integers(File),
-    count_increases(Depths);
+    count_increases(Depths).
 
-solve(part2, File) ->
+part2(File) ->
     Depths = read_integers(File),
     As = [_ | Bs0] = [_, _ | Cs0] = Depths,
     Bs = Bs0 ++ [0],

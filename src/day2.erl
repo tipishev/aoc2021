@@ -1,13 +1,14 @@
 -module(day2).
 
 %% API exports
--export([solve/2]).
+-export([part1/1, part2/1]).
 
-solve(part1, File) ->
+part1(File) ->
     Commands = read_commands(File),
     {X, Y} = get_position(Commands),
-    X * Y;
-solve(part2, File) ->
+    X * Y.
+
+part2(File) ->
     Commands = read_commands(File),
     State0 = #{x => 0, y => 0, aim => 0},
     #{x := X, y := Y} = lists:foldl(fun update/2, State0, Commands),
@@ -41,14 +42,9 @@ read_commands(Filename) ->
     [
         begin
             [DirectionBin, MagnitudeBin] = string:lexemes(Line, " "),
-            Direction = parse_direction(DirectionBin),
+            Direction = binary_to_existing_atom(DirectionBin),
             Magnitude = binary_to_integer(MagnitudeBin),
             {Direction, Magnitude}
         end
         || Line <- Lines
     ].
-
-% list all possible inputs to avoid binary_to_atom
-parse_direction(<<"forward">>) -> forward;
-parse_direction(<<"down">>) -> down;
-parse_direction(<<"up">>) -> up.
