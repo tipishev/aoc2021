@@ -37,8 +37,8 @@ most_common({CountZero, CountOne}) when CountZero > CountOne -> 0;
 most_common({CountZero, CountOne}) when CountZero < CountOne -> 1;
 most_common({Same, Same}) -> 1.
 
-part2(_File) ->
-    not_implemented.
+part2(File) ->
+    read_binary_integers(File).
 
 %%====================================================================
 %% Santa's little helpers
@@ -56,3 +56,9 @@ read_strings(Filename) ->
         || Line <- Lines
     ],
     CharLists.
+
+read_binary_integers(Filename) ->
+    {ok, FileContent} = file:read_file(Filename),
+    BinLines = string:lexemes(FileContent, "\n"),
+    StrLines = [binary_to_list(BinLine) || BinLine <- BinLines],
+    [list_to_integer(StrLine, 2) || StrLine <- StrLines].
