@@ -47,32 +47,29 @@ part2(File) ->
     Scrub = scrub(Binaries),
     Oxy * Scrub.
 
-oxy(Binaries) ->
-    oxy(1, Binaries).
-oxy(_Pos, [TheOne]) -> bin_to_dec(TheOne);
-oxy(Pos, Binaries) ->
-    ValuesAtPos = [lists:nth(Pos, Binary) || Binary <- Binaries],
-    Mode = mode(ValuesAtPos),
-    Filtered = [Binary || Binary <- Binaries, lists:nth(Pos, Binary) =:= Mode],
-    oxy(Pos + 1, Filtered).
+oxy(Binaries) -> filter(oxy, Binaries).
+scrub(Binaries) -> filter(scrub, Binaries).
 
-scrub(Binaries) ->
-    scrub(1, Binaries).
-scrub(_Pos, [TheOne]) -> bin_to_dec(TheOne);
-scrub(Pos, Binaries) ->
+filter(oxy, Binaries) -> filter(Binaries, fun mode/1);
+filter(scrub, Binaries) -> filter(Binaries, fun inverse_mode/1);
+filter(Binaries, ModeFun) -> filter(1, Binaries, ModeFun).
+
+filter(_Pos, [TheOne], _ModeFun) -> bin_to_dec(TheOne);
+filter(Pos, Binaries, ModeFun) ->
     ValuesAtPos = [lists:nth(Pos, Binary) || Binary <- Binaries],
-    Mode = inverse(mode(ValuesAtPos)),
+    Mode = ModeFun(ValuesAtPos),
     Filtered = [Binary || Binary <- Binaries, lists:nth(Pos, Binary) =:= Mode],
-    scrub(Pos + 1, Filtered).
+    filter(Pos + 1, Filtered, ModeFun).
 
 %% @doc finds the most common bit in a binary
 mode(Binary) ->
     Sum = lists:sum(Binary),
     Length = length(Binary),
     mode(Sum, Length).
-
 mode(Sum, Length) when Sum >= Length/2 -> 1;
 mode(_, _) -> 0.
+
+inverse_mode(Binary) -> inverse(mode(Binary)).
 
 
 
