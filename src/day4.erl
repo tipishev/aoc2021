@@ -27,16 +27,39 @@ find_winner([Board | Boards]) ->
     end.
 
 part2(File) ->
-    File.
-    % {DrawnNumbers, Boards} = parse(File),
-    % find_the_last_winner(DrawnNumbers, Boards).
+    {Draws, Boards} = parse(File),
+    {ok, LastWinner, LastWinDraw} = last_winner(Draws, Boards),
+    sum_board(LastWinner) * LastWinDraw.
 
-% find_the_last_winner([DrawnNumber|DrawnNumbers], Boards) ->
-%     find_the_last_winner(DrawnNumber, DrawnNumbers, Boards, _RecentWinner='N/A').
+last_winner(Draws, Boards) ->
+    last_winner(Draws, Boards, _PrevWinner = 'N/A', _PrevWinDraw = 'N/A').
 
-% find_the_last_winner(_DrawnNumber, _DrawnNumbers=[], _Boards, RecentWinner) ->
-%     RecentWinner;
-% find_the_last_winner(DrawnNumber, DrawnNumbers, Boards, RecentWinner) ->
+% out of draws
+last_winner(_Draws = [], _Boards, PrevWinner, PrevWinDraw) ->
+    {ok, PrevWinner, PrevWinDraw};
+% out of boards
+last_winner(_Draws, _Boards = [], PrevWinner, PrevWinDraw) ->
+    {ok, PrevWinner, PrevWinDraw};
+last_winner(Draws, Boards, PrevWinner, PrevWinDraw) ->
+    [Draw | DrawsTail] = Draws,
+    MarkedBoards = mark_boards(Boards, Draw),
+    {Winner, Stayers} = winner_stayers(MarkedBoards),
+    case {Winner, Stayers} of
+        % recursive case captchures empty Stayers, too
+        {'N/A', Stayers} ->
+            last_winner(DrawsTail, Stayers, PrevWinner, PrevWinDraw);
+        {Winner, Stayers} ->
+            last_winner(DrawsTail, Stayers, Winner, Draw)
+    end.
+
+winner_stayers(MarkedBoards) ->
+    lists:foldl(fun winners_stayers_folder/2, {'N/A', []}, MarkedBoards).
+
+winners_stayers_folder(MarkedBoard, {PrevWinner, Stayers}) ->
+    case is_winner(MarkedBoard) of
+        true -> {MarkedBoard, Stayers};
+        false -> {PrevWinner, [MarkedBoard | Stayers]}
+    end.
 
 %%% Board Logic
 
