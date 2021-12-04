@@ -4,16 +4,19 @@
 -export([part1/1, part2/1]).
 
 part1(File) ->
-    {DrawnNumbers, Boards} = parse(File),
-    solve_part1(DrawnNumbers, Boards, _Prev = 'N/A').
+    {Draws, Boards} = parse(File),
+    {ok, Winner, Draw} = first_winner(Draws, Boards),
+    sum_board(Winner) * Draw.
 
-solve_part1(DrawnNumbers, Boards, Prev) ->
+first_winner(Draws, Boards) ->
+    first_winner(Draws, Boards, _PrevDraw = 'N/A').
+first_winner(Draws, Boards, PrevDraw) ->
     case find_winner(Boards) of
         {error, notfound} ->
-            [DrawnNumber | DrawnNumbersTail] = DrawnNumbers,
-            MarkedBoards = [mark_board(Board, DrawnNumber) || Board <- Boards],
-            solve_part1(DrawnNumbersTail, MarkedBoards, DrawnNumber);
-        {ok, Board} -> sum_board(Board) * Prev
+            [Draw | DrawsTail] = Draws,
+            MarkedBoards = mark_boards(Boards, Draw),
+            first_winner(DrawsTail, MarkedBoards, Draw);
+        {ok, Winner} -> {ok, Winner, PrevDraw}
     end.
 
 find_winner([]) -> {error, notfound};
@@ -24,11 +27,22 @@ find_winner([Board | Boards]) ->
     end.
 
 part2(File) ->
-    parse(File).
+    File.
+    % {DrawnNumbers, Boards} = parse(File),
+    % find_the_last_winner(DrawnNumbers, Boards).
+
+% find_the_last_winner([DrawnNumber|DrawnNumbers], Boards) ->
+%     find_the_last_winner(DrawnNumber, DrawnNumbers, Boards, _RecentWinner='N/A').
+
+% find_the_last_winner(_DrawnNumber, _DrawnNumbers=[], _Boards, RecentWinner) ->
+%     RecentWinner;
+% find_the_last_winner(DrawnNumber, DrawnNumbers, Boards, RecentWinner) ->
 
 %%% Board Logic
 
 %%% Mark
+mark_boards(Boards, N) ->
+    [ mark_board(Board, N) || Board <- Boards ].
 mark_board(Board, N) ->
     [ mark_row(Row, N) || Row <- Board ].
 mark_row(Row, N) ->
