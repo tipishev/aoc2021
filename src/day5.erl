@@ -12,7 +12,11 @@ part1(File) ->
     board_count_overlaps(CoveredBoard).
 
 part2(File) ->
-    parse_vectors(File).
+    Board = board_new(),
+    Vents = parse_vectors(File),
+    CoveredSquares = covered_squares(Vents),
+    CoveredBoard = board_increment(Board, CoveredSquares),
+    board_count_overlaps(CoveredBoard).
 
 %%% Board helpers
 
@@ -29,8 +33,17 @@ board_count_overlaps(Board) ->
 
 %%% Vector helpers
 
-non_diagonal(Vector) ->
-    is_horizontal(Vector) orelse is_vertical(Vector).
+covered_squares(Vectors) when is_list(Vectors) ->
+    lists:flatten([covered_squares(Vector) || Vector <- Vectors]);
+covered_squares(Vector) when is_tuple(Vector) ->
+    case non_diagonal(Vector) of
+        true -> non_diagonal_covered_squares(Vector);
+        false -> diagonal_covered_squares(Vector)
+    end.
+
+%%% non-diagonal case
+
+non_diagonal(Vector) -> is_horizontal(Vector) orelse is_vertical(Vector).
 
 is_horizontal({{X, _Y1}, {X, _Y2}}) -> true;
 is_horizontal({{_X1, _Y1}, {_X2, _Y2}}) -> false.
@@ -38,15 +51,30 @@ is_horizontal({{_X1, _Y1}, {_X2, _Y2}}) -> false.
 is_vertical({{_X1, Y}, {_X2, Y}}) -> true;
 is_vertical({{_X1, _Y1}, {_X2, _Y2}}) -> false.
 
-covered_squares(Vectors) when is_list(Vectors) ->
-    lists:flatten([covered_squares(Vector) || Vector <- Vectors]);
-covered_squares(Vector) when is_tuple(Vector) ->
+non_diagonal_covered_squares(Vectors) when is_list(Vectors) ->
+    lists:flatten([non_diagonal_covered_squares(Vector) || Vector <- Vectors]);
+non_diagonal_covered_squares(Vector) when is_tuple(Vector) ->
     {{X1, Y1}, {X2, Y2}} = Vector,
     [SmallerX, BiggerX] = lists:sort([X1, X2]),
     [SmallerY, BiggerY] = lists:sort([Y1, Y2]),
     Xs = lists:seq(SmallerX, BiggerX),
     Ys = lists:seq(SmallerY, BiggerY),
     [{X, Y} || X <- Xs, Y <- Ys].
+
+%%% diagonal case
+
+diagonal_covered_squares(Vectors) when is_list(Vectors) ->
+    lists:flatten([diagonal_covered_squares(Vector) || Vector <- Vectors]);
+diagonal_covered_squares(Vector) when is_tuple(Vector) ->
+    {{X1, Y1}, {X2, Y2}} = Vector,
+    Xs = between(X1, X2),
+    Ys = between(Y1, Y2),
+    XYs = lists:zip(Xs, Ys),
+    [{X, Y} || {X, Y} <- XYs].
+
+between(A, A) -> [];
+between(A, B) when A < B -> lists:seq(A, B);
+between(A, B) when A > B -> lists:reverse(between(B, A)).
 
 %%% Parser
 
@@ -66,4 +94,3 @@ parse_point(StrPoint) ->
     X = binary_to_integer(StrX),
     Y = binary_to_integer(StrY),
     {X, Y}.
-
