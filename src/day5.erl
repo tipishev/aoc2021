@@ -21,11 +21,11 @@ part2(File) ->
 %%% Board helpers
 
 board_new() -> #{}.
-board_increment(Board, Squares) when is_list(Squares)->
+board_increment(Board, Squares) when is_list(Squares) ->
     lists:foldl(fun(Square, BoardAcc) -> board_increment(BoardAcc, Square) end, Board, Squares);
-board_increment(Board, Square) when is_tuple(Square)->
+board_increment(Board, Square) when is_tuple(Square) ->
     Increment = fun(V) -> V + 1 end,
-    maps:update_with(Square, Increment, _Default=1, Board).
+    maps:update_with(Square, Increment, _Default = 1, Board).
 
 board_count_overlaps(Board) ->
     Counts = maps:values(Board),
