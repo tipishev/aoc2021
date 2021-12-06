@@ -5,25 +5,33 @@
 
 part1(File) ->
     Timers = parse_int_array(File),
-    length(advance(Timers, 80)).
-
-advance(Timers, 0) ->
-    Timers;
-advance(Timers, Days) ->
-    advance(advance(Timers), Days - 1).
-
-advance(Timers) when is_list(Timers) ->
-   lists:flatten([advance(Timer) || Timer <- Timers]);
-advance(Timer) when Timer > 0 ->
-    Timer - 1;
-advance(Timer) when Timer =:= 0 ->
-    [6, 8].
-
+    Counter = to_counter(Timers),
+    lists:sum(advance(Counter, 80)).
 
 part2(File) ->
-    parse_int_array(File).
+    Timers = parse_int_array(File),
+    Counter = to_counter(Timers),
+    lists:sum(advance(Counter, 256)).
 
-%%% Parser
+advance(Counter, Times) ->
+    lists:foldl(fun(_Idx, AccCounter) -> advance(AccCounter) end, Counter, lists:seq(1, Times)).
+
+%         0     1    2       3     4     5         6          7      8
+advance([Zero, One, Two,   Three, Four, Five, Six,          Seven, Eight]) ->
+        [One,  Two, Three, Four,  Five, Six,  Seven + Zero, Eight, Zero ].
+
+to_counter(Integers) ->
+    to_counter(Integers, [0, 0, 0, 0, 0, 0, 0, 0, 0]).
+to_counter([], Counter) -> Counter;
+to_counter([H|T], Counter) ->
+    % because Erlang lists are 1-indexed
+    N = H + 1,
+    OldValue = lists:nth(N, Counter),
+    to_counter(T, setnth(N, Counter, OldValue + 1)).
+
+% stolen from https://stackoverflow.com/a/4781219
+setnth(1, [_|Rest], New) -> [New|Rest];
+setnth(I, [E|Rest], New) -> [E|setnth(I-1, Rest, New)].
 
 parse_int_array(Filename) ->
     {ok, CsvStrIntegers} = file:read_file(Filename),
