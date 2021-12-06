@@ -4,12 +4,14 @@
 -export([part1/1, part2/1]).
 
 part1(File) ->
-    parse(File).
+    parse_int_array(File).
 
 part2(File) ->
-    parse(File).
+    parse_int_array(File).
 
-parse(Filename) ->
-    {ok, FileContent} = file:read_file(Filename),
-    Lines = string:lexemes(FileContent, "\n"),
-    Lines.
+%%% Parser
+
+parse_int_array(Filename) ->
+    {ok, CsvStrIntegers} = file:read_file(Filename),
+    StrIntegers = string:lexemes(CsvStrIntegers, ",\n"),
+    _Integers = [binary_to_integer(StrInteger) || StrInteger <- StrIntegers].
