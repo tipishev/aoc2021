@@ -17,12 +17,12 @@ advance(Counter, Times) ->
     lists:foldl(fun(_Idx, AccCounter) -> advance(AccCounter) end, Counter, lists:seq(1, Times)).
 
 %         0     1    2       3     4     5         6          7      8
-advance([Zero, One, Two,   Three, Four, Five, Six,          Seven, Eight]) ->
-        [One,  Two, Three, Four,  Five, Six,  Seven + Zero, Eight, Zero ].
+advance({Zero, One, Two,   Three, Four, Five, Six,          Seven, Eight}) ->
+        {One,  Two, Three, Four,  Five, Six,  Seven + Zero, Eight, Zero }.
 
 to_counter(Integers) ->
     to_counter(Integers, [0, 0, 0, 0, 0, 0, 0, 0, 0]).
-to_counter([], Counter) -> Counter;
+to_counter([], Counter) -> list_to_tuple(Counter);
 to_counter([H|T], Counter) ->
     % because Erlang lists are 1-indexed
     N = H + 1,
