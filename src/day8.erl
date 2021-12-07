@@ -1,4 +1,4 @@
--module(template).
+-module(day8).
 
 %% API exports
 -export([part1/1, part2/1]).
