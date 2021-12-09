@@ -36,7 +36,50 @@ is_local_minimum(X, Y, Index) ->
 
 part2(File) ->
     Grid = read_grid(File),
-    Map = threshold(Grid).
+    Dimensions = dimensions(Grid),
+    WallMap = to_wall_map(Grid),
+    IsWallIndex = index_values(WallMap),
+    IsWall = fun({X, Y}) -> maps:get({X, Y}, IsWallIndex) end,
+
+    AdjacencyMap = adjacency_map(Dimensions, IsWall),
+    AllCells = maps:keys(AdjacencyMap),
+
+    % each cell considers itself the smallest known linked cell
+    MinLink0 = maps:from_list([{Cell, Cell} || Cell <- AllCells]),
+
+    MinLink = gossip_until_convergence(AllCells, AdjacencyMap, MinLink0),
+    Mins = maps:values(MinLink),
+    Counts = maps:values(count(Mins)),
+    [A, B, C | _Tail] = _CountsBiggestFirst = lists:reverse(lists:sort(Counts)),
+    A * B * C.
+
+
+gossip_until_convergence(AllCells, AdjacencyMap, MinLink) ->
+    NewMinLink = gossip(AllCells, AdjacencyMap, MinLink),
+    case NewMinLink =:= MinLink of
+        true -> MinLink;
+        false -> gossip_until_convergence(AllCells, AdjacencyMap, NewMinLink)
+    end.
+
+
+
+gossip([], _AdjacencyMap, MinLink) -> MinLink;
+gossip([Cell | Cells], AdjacencyMap, MinLink0) ->
+    Adjacents = maps:get(Cell, AdjacencyMap),
+    MinLink = update_min_link(Adjacents, Cell, MinLink0),
+    gossip(Cells, AdjacencyMap, MinLink).
+
+update_min_link([], _Cell, MinLink) -> MinLink;
+update_min_link([Adjacent|Adjacents], Cell, MinLink0) ->
+    CellMinLink = maps:get(Cell, MinLink0),
+    AdjacentMinLink = maps:get(Adjacent, MinLink0),
+    MinLink = case CellMinLink < AdjacentMinLink of
+                  true -> MinLink0#{Adjacent := CellMinLink};
+                  false -> MinLink0
+              end,
+    update_min_link(Adjacents, Cell, MinLink).
+
+
     % ValueIndex = index(Rows),
     % {MaxX, MaxY} = {length(Rows), length(hd(Rows))},
     % io:format("~p, ~p~n", [MaxX, MaxY]),
@@ -46,22 +89,20 @@ part2(File) ->
     % Walls = [{X, Y} || X <- Xs, Y <- Ys, maps:get({X, Y}, Index) =:= 9],
     % length(Walls).
 
-threshold(Grid) when is_list(Grid)-> [[threshold(Height) || Height <- Row] || Row <- Grid];
-threshold(Height) when is_integer(Height) andalso Height =:= 9 -> 9;
-threshold(Height) when is_integer(Height) andalso Height < 9 -> 0.
+adjacency_map({MaxX, MaxY}, IsWall) ->
+    maps:from_list([{ {X, Y}, adjacent({X, Y}, {MaxX, MaxY}, IsWall) }
+                    || X <- one_to(MaxX), Y <- one_to(MaxY), not IsWall({X, Y})]).
 
+to_wall_map(Grid) -> [[Height =:= 9 || Height <- Row] || Row <- Grid].
 
-% adjacent({X, Y}, {MaxX, MaxY}) ->
-%     [
-%         {NeighbX, NeighbY}
-%         || {NeighbX, NeighbY} <- [{X + 1, Y}, {X, Y + 1}, {X - 1, Y}, {X, Y - 1}],
-%            NeighbX > 0,
-%            NeighbY > 0,
-%            NeighbX =< MaxX,
-%            NeighbY =< MaxY
-%     ].
-
-
+adjacent({X, Y}, {MaxX, MaxY}, IsWall) ->
+    [
+        {AdjacentX, AdjacentY}
+        || {AdjacentX, AdjacentY} <- [{X + 1, Y}, {X, Y + 1}, {X - 1, Y}, {X, Y - 1}],
+           AdjacentX > 0, AdjacentY > 0,
+           AdjacentX =< MaxX, AdjacentY =< MaxY,
+           not IsWall({AdjacentX, AdjacentY})
+    ].
 
 %% @doc Produces a {X, Y} -> Value map from a list of row values.
 index_values(Rows) ->
@@ -92,3 +133,14 @@ to_grid_row(BinInteger) -> [Char - 48 || <<Char>> <= BinInteger].
 enumerate(List) -> lists:zip(lists:seq(1, length(List)), List).
 sum(List) -> lists:sum(List).
 one_to(Value) -> lists:seq(1, Value).
+
+% A simple counter I reimplement every once in a while :-/
+
+count(List) ->
+    count(List, #{}).
+count([], Counter) ->
+    Counter;
+count([H | T], Counter) ->
+    Increment = fun(N) -> N + 1 end,
+    UpdatedCounter = maps:update_with(H, Increment, _Init = 1, Counter),
+    count(T, UpdatedCounter).
