@@ -46,22 +46,20 @@ part2(File) ->
 
     % each cell considers itself the smallest known linked cell
     MinLink0 = maps:from_list([{Cell, Cell} || Cell <- AllCells]),
-
     MinLink = gossip_until_convergence(AllCells, AdjacencyMap, MinLink0),
-    Mins = maps:values(MinLink),
-    Counts = maps:values(count(Mins)),
-    [A, B, C | _Tail] = _CountsBiggestFirst = lists:reverse(lists:sort(Counts)),
-    A * B * C.
 
+    BasinSizes = maps:values(count(maps:values(MinLink))),
+    [Biggest, SecondBiggest, ThirdBiggest | _SmallerSizes] = lists:reverse(lists:sort(BasinSizes)),
+    Biggest * SecondBiggest * ThirdBiggest.
 
+%% @doc let all cells tell their neighbors about the smallest known basin cell index
+%% all cells in the basin agree.
 gossip_until_convergence(AllCells, AdjacencyMap, MinLink) ->
     NewMinLink = gossip(AllCells, AdjacencyMap, MinLink),
     case NewMinLink =:= MinLink of
         true -> MinLink;
         false -> gossip_until_convergence(AllCells, AdjacencyMap, NewMinLink)
     end.
-
-
 
 gossip([], _AdjacencyMap, MinLink) -> MinLink;
 gossip([Cell | Cells], AdjacencyMap, MinLink0) ->
@@ -78,16 +76,6 @@ update_min_link([Adjacent|Adjacents], Cell, MinLink0) ->
                   false -> MinLink0
               end,
     update_min_link(Adjacents, Cell, MinLink).
-
-
-    % ValueIndex = index(Rows),
-    % {MaxX, MaxY} = {length(Rows), length(hd(Rows))},
-    % io:format("~p, ~p~n", [MaxX, MaxY]),
-    % neighbors({1, 10}, {MaxX, MaxY}).
-    % Xs = lists:seq(1, MaxX),
-    % Ys = lists:seq(1, MaxY),
-    % Walls = [{X, Y} || X <- Xs, Y <- Ys, maps:get({X, Y}, Index) =:= 9],
-    % length(Walls).
 
 adjacency_map({MaxX, MaxY}, IsWall) ->
     maps:from_list([{ {X, Y}, adjacent({X, Y}, {MaxX, MaxY}, IsWall) }
@@ -126,7 +114,6 @@ read_grid(Filename) ->
 
 to_grid_row(BinInteger) -> [Char - 48 || <<Char>> <= BinInteger].
 
-
 % Helpers
 
 % Python, I miss you sometimes :'-[
@@ -135,9 +122,7 @@ sum(List) -> lists:sum(List).
 one_to(Value) -> lists:seq(1, Value).
 
 % A simple counter I reimplement every once in a while :-/
-
-count(List) ->
-    count(List, #{}).
+count(List) -> count(List, #{}).
 count([], Counter) ->
     Counter;
 count([H | T], Counter) ->
