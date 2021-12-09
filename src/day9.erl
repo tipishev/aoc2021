@@ -35,7 +35,8 @@ is_local_minimum(X, Y, Index) ->
     LargerAdjacents =:= Adjacents.
 
 part2(File) ->
-    _Rows = read_grid(File).
+    Grid = read_grid(File),
+    Map = threshold(Grid).
     % ValueIndex = index(Rows),
     % {MaxX, MaxY} = {length(Rows), length(hd(Rows))},
     % io:format("~p, ~p~n", [MaxX, MaxY]),
@@ -44,6 +45,11 @@ part2(File) ->
     % Ys = lists:seq(1, MaxY),
     % Walls = [{X, Y} || X <- Xs, Y <- Ys, maps:get({X, Y}, Index) =:= 9],
     % length(Walls).
+
+threshold(Grid) when is_list(Grid)-> [[threshold(Height) || Height <- Row] || Row <- Grid];
+threshold(Height) when is_integer(Height) andalso Height =:= 9 -> 9;
+threshold(Height) when is_integer(Height) andalso Height < 9 -> 0.
+
 
 % adjacent({X, Y}, {MaxX, MaxY}) ->
 %     [
