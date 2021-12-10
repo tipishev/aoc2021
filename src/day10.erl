@@ -13,3 +13,17 @@ parse(Filename) ->
     {ok, FileContent} = file:read_file(Filename),
     Lines = string:lexemes(FileContent, "\n"),
     Lines.
+
+tokenize(<<"(">>) -> {open, round};
+tokenize(<<")">>) -> {close, round};
+tokenize(<<"[">>) -> {open, square};
+tokenize(<<"]">>) -> {close, square};
+tokenize(<<"{">>) -> {open, curly};
+tokenize(<<"}">>) -> {close, curly};
+tokenize(<<"<">>) -> {open, angly};
+tokenize(<<">">>) -> {close, angly}.
+
+score(round) -> 3;
+score(square) -> 57;
+score(curly) -> 1197;
+score(angly) -> 25137.
