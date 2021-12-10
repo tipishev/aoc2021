@@ -5,9 +5,9 @@
 
 part1(Filename) ->
     Lines = parse(Filename),
-    Results = [check(Line) || Line <- Lines],
-    Scores = [score_illegal(Illegal)
-              || {error, {expected, _Expected, got, Illegal}} <- Results],
+    CheckResults = [check(Line) || Line <- Lines],
+    IllegalTokens = [Token || {error, {expected, _Expected, got, Token}} <- CheckResults],
+    Scores = [score_illegal(Token) || Token <- IllegalTokens],
     lists:sum(Scores).
 
 score_illegal(round) -> 3;
@@ -17,9 +17,12 @@ score_illegal(angly) -> 25137.
 
 part2(Filename) ->
     Lines = parse(Filename),
-    Results = [check(Line) || Line <- Lines],
-    Incomplete = [Stack || {incomplete, Stack} <- Results],
+    CheckResults = [check(Line) || Line <- Lines],
+    Incomplete = [Stack || {incomplete, Stack} <- CheckResults],
     Scores = [score_incomplete(Symbols) || Symbols <- Incomplete],
+    pick_middle(Scores).
+
+pick_middle(Scores) ->
     SortedScores = lists:sort(Scores),
     MiddleIndex = round(math:ceil(length(Scores) / 2)),
     lists:nth(MiddleIndex, SortedScores).
@@ -65,5 +68,3 @@ tokenize(<<"{">>) -> {open, curly};
 tokenize(<<"}">>) -> {close, curly};
 tokenize(<<"<">>) -> {open, angly};
 tokenize(<<">">>) -> {close, angly}.
-
-
