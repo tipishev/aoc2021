@@ -12,7 +12,7 @@ part2(File) ->
 parse(Filename) ->
     {ok, FileContent} = file:read_file(Filename),
     Lines = string:lexemes(FileContent, "\n"),
-    Lines.
+    [[tokenize(<<Char>>) || <<Char>> <= Line] || Line <- Lines].
 
 tokenize(<<"(">>) -> {open, round};
 tokenize(<<")">>) -> {close, round};
