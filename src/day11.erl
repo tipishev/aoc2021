@@ -4,14 +4,21 @@
 -export([part1/1, part2/1]).
 
 -define(GRID_SIZE, 10).
+-define(MAX_ITERATIONS, 1000).
 
 part1(File) -> count_flashes(parse(File), 100).
-part2(File) -> parse(File).
+part2(File) -> find_sync(parse(File), _IterationNumber = 1).
 
 % Grid
 
-% display(Grid) ->
-%     chunkify([Val|| {_Pos, Val} <- lists:sort(maps:to_list(Grid))], ?GRID_SIZE).
+find_sync(_Grid, ?MAX_ITERATIONS) -> notfound;
+find_sync(Grid, IterationNumber) ->
+    NewGrid = flash(increment(Grid)),
+    FlashCount = count_zeros(maps:values(NewGrid)),
+    case FlashCount =:= ?GRID_SIZE * ?GRID_SIZE of
+         true -> IterationNumber;
+         false -> find_sync(NewGrid, IterationNumber + 1)
+    end.
 
 count_flashes(Grid, NumberOfIterations) ->
     {_FinalGrid, FinalFlashCount} = lists:foldl(
@@ -115,7 +122,4 @@ index_values_row(RowIndex, [{ColIndex, Value} | Cols], Index) ->
 
 enumerate(List) -> lists:zip(lists:seq(1, length(List)), List).
 one_to(Value) -> lists:seq(1, Value).
-% print(Term) -> io:format ("~p~n", [Term]).
-% chunkify([], _) -> [];
-% chunkify(L, N) -> [lists:sublist(L, N) | chunkify(lists:nthtail(N, L), N)].
 count_zeros(DeepList) -> length([Zero || Zero <- lists:flatten(DeepList), Zero =:= 0]).
