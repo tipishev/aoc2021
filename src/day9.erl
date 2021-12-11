@@ -92,7 +92,7 @@ adjacent({X, Y}, {MaxX, MaxY}, IsWall) ->
            not IsWall({AdjacentX, AdjacentY})
     ].
 
-%% @doc Produces a {X, Y} -> Value map from a list of row values.
+% %% @doc Produces a {X, Y} -> Value map from a list of row values.
 index_values(Rows) ->
     EnumeratedRows = enumerate([enumerate(Row) || Row <- Rows]),
     index_values(EnumeratedRows, _Index = #{}).
@@ -116,6 +116,7 @@ to_grid_row(BinInteger) -> [Char - 48 || <<Char>> <= BinInteger].
 
 % Helpers
 
+% TODO deduplicate with day11
 % Python, I miss you sometimes :'-[
 enumerate(List) -> lists:zip(lists:seq(1, length(List)), List).
 sum(List) -> lists:sum(List).
