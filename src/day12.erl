@@ -14,12 +14,13 @@ part2(Filename) ->
 
 find_paths(Graph, Source, Destination) ->
     NestedPaths = dfs(Graph, Source, Destination, _VisitedSmall = ordsets:new(), []),
-    PathStream = unpack(lists:flatten(NestedPaths)),
-    length(PathStream).
+    PathStream = lists:flatten(NestedPaths),
+    Paths = unpack(PathStream),
+    length(Paths).
 
 % %% @doc [start, foo, end, start, foo, bar, end] to [[start, foo, end], [start, foo, bar, end]]
 unpack(PathStream) ->
-    unpack(PathStream, _CurrentPath = [], _AccPaths = []).
+    unpack(PathStream, _CurrentPath = [], _Paths = []).
 unpack(_PathStream = [], _CurrentPath = [], Paths) ->
     Paths;
 unpack([start | PathStream], _CurrentPath = [], Paths) ->
