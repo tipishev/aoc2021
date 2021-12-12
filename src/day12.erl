@@ -5,7 +5,7 @@
 
 part1(Filename) ->
     Graph = parse_graph(Filename),
-    digraph:edges(Graph).
+    edges(Graph).
 
 part2(Filename) ->
     parse_graph(Filename).
@@ -16,11 +16,20 @@ add_vertices(Graph, Vertices) ->
     lists:foreach(fun(Vertex) -> digraph:add_vertex(Graph, Vertex) end, Vertices).
 
 add_edges(Graph, Edges) ->
-    lists:foreach(fun([Source, Destination]) ->
-                          digraph:add_edge(Graph, Source, Destination)
-                          % TODO add a Destination -> Source edge, too?
-                  end,
-                  Edges).
+    lists:foreach(fun([Source, Destination]) -> add_edge(Graph, Source, Destination) end, Edges).
+
+add_edge(Graph, Source, Destination) ->
+    % TODO add a Destination -> Source edge, for non-start/end vertices.
+    digraph:add_edge(Graph, Source, Destination).
+
+edges(Graph) ->
+    [
+        {Source, Destination}
+        || {_, Source, Destination, _} <- [
+               digraph:edge(Graph, Edge)
+               || Edge <- digraph:edges(Graph)
+           ]
+    ].
 
 % Parse
 
@@ -35,5 +44,6 @@ parse_graph(Filename) ->
     Graph.
 
 parse_edge_line(Line) ->
-  [_Src, _Dst] = [binary_to_atom(Token) || Token <- string:lexemes(Line, "-")].
+  [_Source, _Destination] = [binary_to_atom(Token) || Token <- string:lexemes(Line, "-")].
+
 
