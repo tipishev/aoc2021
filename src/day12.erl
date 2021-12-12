@@ -5,7 +5,7 @@
 
 part1(Filename) ->
     Graph = parse_graph(Filename),
-    find_paths_without_repeating_small_caves(Graph, start, 'end').
+    find_paths_without_repeating_small_caves(Graph).
 
 part2(Filename) ->
     Graph = parse_graph(Filename),
@@ -13,8 +13,8 @@ part2(Filename) ->
 
 % Graph extensions
 
-find_paths_without_repeating_small_caves(Graph, Source, Destination) ->
-    NestedPaths = dfs(Graph, Source, Destination, _VisitedSmall = ordsets:new(), _CurrentPath = []),
+find_paths_without_repeating_small_caves(Graph) ->
+    NestedPaths = dfs(Graph, start, _VisitedSmall = ordsets:new(), _CurrentPath = []),
     PathStream = lists:flatten(NestedPaths),
     Paths = unpack(PathStream),
     length(Paths).
@@ -26,6 +26,22 @@ find_paths_with_at_most_one_repeating_small_cave(Graph) ->
     Paths = unpack(PathStream),
     io:format("~p~n", [Paths]),
     length(Paths).
+
+% Depth-First Traversal (DFS)
+dfs(_Graph, 'end', _VisitedSmall, CurrentPath) -> CurrentPath;
+dfs(Graph, Vertex, VisitedSmall0, CurrentPath) ->
+    VisitedSmall =
+        case is_lower(Vertex) of
+            true -> ordsets:add_element(Vertex, VisitedSmall0);
+            false -> VisitedSmall0;
+            not_applicable -> VisitedSmall0
+        end,
+    OutNeighbours = out_neighbours(Graph, Vertex),
+    VisitableOutNeihbours = ordsets:subtract(OutNeighbours, VisitedSmall),
+    [
+        dfs(Graph, Neighbour, VisitedSmall, CurrentPath ++ [Neighbour])
+        || Neighbour <- VisitableOutNeihbours
+    ].
 
 % DFS for part 2
 
@@ -82,24 +98,6 @@ unpack(['end' | PathStream], CurrentPath, Paths) ->
 unpack([Element | PathStream], CurrentPath, Paths) ->
     unpack(PathStream, [Element | CurrentPath], Paths).
 
-% Depth-First Traversal (DFS)
-dfs(_Graph, _Vertex = Destination, Destination, _VisitedSmall, CurrentPath) ->
-    CurrentPath ++ [Destination];
-dfs(Graph, Vertex, Destination, VisitedSmall0, CurrentPath0) ->
-    CurrentPath = CurrentPath0 ++ [Vertex],
-    VisitedSmall =
-        case is_lower(Vertex) of
-            true -> ordsets:add_element(Vertex, VisitedSmall0);
-            false -> VisitedSmall0
-        end,
-    OutNeighbours = out_neighbours(Graph, Vertex),
-    VisitableOutNeihbours = ordsets:subtract(OutNeighbours, VisitedSmall0),
-    [
-        dfs(Graph, Neighbour, Destination, VisitedSmall, CurrentPath)
-        || Neighbour <- VisitableOutNeihbours
-    ].
-
-
 out_neighbours(Graph, Vertex) ->
     ordsets:from_list(digraph:out_neighbours(Graph, Vertex)).
 
@@ -107,16 +105,24 @@ add_vertices(Graph, Vertices) ->
     lists:foreach(fun(Vertex) -> digraph:add_vertex(Graph, Vertex) end, Vertices).
 
 add_edges(Graph, Edges) ->
-    lists:foreach(fun([Source, Destination]) -> add_edge(Graph, Source, Destination) end, Edges).
+    lists:foreach(fun([Vertex1, Vertex2]) -> add_edge(Graph, Vertex1, Vertex2) end, Edges).
 
-add_edge(Graph, Source, Destination) when
-    Source =:= start;
-    Destination =:= 'end'
-->
-    digraph:add_edge(Graph, Source, Destination);
-add_edge(Graph, Source, Destination) ->
-    digraph:add_edge(Graph, Source, Destination),
-    digraph:add_edge(Graph, Destination, Source).
+% unflip incorrect source/destination
+add_edge(Graph, 'end', Vertex1) ->
+    add_edge(Graph, Vertex1, 'end');
+add_edge(Graph, Vertex1, start) ->
+    add_edge(Graph, start, Vertex1);
+
+% add just one edge for 'start' and 'end'.
+add_edge(Graph, Vertex1, 'end') ->
+    digraph:add_edge(Graph, Vertex1, 'end');
+add_edge(Graph, start, Vertex2) ->
+    digraph:add_edge(Graph, start, Vertex2);
+
+% in general case add both V1->V2 and V2->V1
+add_edge(Graph, Vertex1, Vertex2) ->
+    digraph:add_edge(Graph, Vertex1, Vertex2),
+    digraph:add_edge(Graph, Vertex2, Vertex1).
 
 % Parse
 
@@ -131,12 +137,12 @@ parse_graph(Filename) ->
     Graph.
 
 parse_edge_line(Line) ->
-    [_Source, _Destination] = [binary_to_atom(Token) || Token <- string:lexemes(Line, "-")].
+    [_Vertex1, _Vertex2] = [binary_to_atom(Token) || Token <- string:lexemes(Line, "-")].
 
 % herlpers
 
-% is_lower(start) -> not_applicable;
-% is_lower('end') -> not_applicable;
+is_lower(start) -> not_applicable;
+is_lower('end') -> not_applicable;
 is_lower(Atom) ->
     String = atom_to_list(Atom),
     String =:= string:to_lower(String).
