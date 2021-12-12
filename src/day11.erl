@@ -11,13 +11,14 @@ part2(File) -> find_sync(parse(File), _IterationNumber = 1).
 
 % Grid
 
-find_sync(_Grid, ?MAX_ITERATIONS) -> notfound;
+find_sync(_Grid, ?MAX_ITERATIONS) ->
+    iterations_exceeded;
 find_sync(Grid, IterationNumber) ->
     NewGrid = flash(increment(Grid)),
     FlashCount = count_zeros(maps:values(NewGrid)),
-    case FlashCount =:= ?GRID_SIZE * ?GRID_SIZE of
-         true -> IterationNumber;
-         false -> find_sync(NewGrid, IterationNumber + 1)
+    case FlashCount of
+        ?GRID_SIZE * ?GRID_SIZE -> IterationNumber;
+        _ -> find_sync(NewGrid, IterationNumber + 1)
     end.
 
 count_flashes(Grid, NumberOfIterations) ->
@@ -37,22 +38,20 @@ step(Grid) ->
     {NewGrid, FlashCount}.
 
 flash(Grid) ->
-    NewFlashers = find_new_flashers(Grid),
-    case NewFlashers of
+    case find_new_flashers(Grid) of
         [] ->
-            After = replace(Grid, f, 0),
-            After;
-        Flashers ->
-            Adjacents = [adjacent(Flasher) || Flasher <- Flashers],
-            WithFlashers = mark(Grid, Flashers, f),
-            WithIncrementedAdjacents = lists:foldl(fun increment_folder/2, WithFlashers, Adjacents),
+            replace(Grid, flasher, 0);
+        NewFlashers ->
+            Adjacents = [adjacent(NewFlasher) || NewFlasher <- NewFlashers],
+            WithNewFlashers = mark(Grid, NewFlashers, flasher),
+            WithIncrementedAdjacents = lists:foldl(fun increment_folder/2, WithNewFlashers, Adjacents),
             flash(WithIncrementedAdjacents)
     end.
 
 find_new_flashers(Grid) ->
     IsNewFlasher = fun
         % an old flasher
-        (_Position, f) -> false;
+        (_Position, flasher) -> false;
         (_Position, Level) -> Level > 9
     end,
     ordsets:from_list(maps:keys(maps:filter(IsNewFlasher, Grid))).
@@ -75,7 +74,8 @@ increment(Grid) ->
 
 increment_folder(Positions, Grid) ->
     Increment = fun
-        (_, f) -> f;
+        (_, flasher) ->
+            flasher;
         (Position, Value) ->
             case lists:member(Position, Positions) of
                 true -> Value + 1;
