@@ -5,18 +5,69 @@
 
 part1(Filename) ->
     Graph = parse_graph(Filename),
-    find_paths(Graph, start, 'end').
+    find_paths_without_repeating_small_caves(Graph, start, 'end').
 
 part2(Filename) ->
-    parse_graph(Filename).
+    Graph = parse_graph(Filename),
+    find_paths_with_at_most_one_repeating_small_cave(Graph).
 
 % Graph extensions
 
-find_paths(Graph, Source, Destination) ->
-    NestedPaths = dfs(Graph, Source, Destination, _VisitedSmall = ordsets:new(), []),
+find_paths_without_repeating_small_caves(Graph, Source, Destination) ->
+    NestedPaths = dfs(Graph, Source, Destination, _VisitedSmall = ordsets:new(), _CurrentPath = []),
     PathStream = lists:flatten(NestedPaths),
     Paths = unpack(PathStream),
     length(Paths).
+
+find_paths_with_at_most_one_repeating_small_cave(Graph) ->
+    VisitedSmall = ordsets:new(),
+    NestedPaths = dfs2(Graph, start, VisitedSmall, _SecondSmall = undefined, _CurrentPath = []),
+    PathStream = lists:flatten(NestedPaths),
+    Paths = unpack(PathStream),
+    io:format("~p~n", [Paths]),
+    length(Paths).
+
+% DFS for part 2
+
+% arrived to the 'end'
+dfs2(_Graph, 'end', _VisitedSmall, _SecondSmall, CurrentPath) ->
+    CurrentPath ++ ['end'];
+
+% a small cave has not been visited twice yet
+dfs2(Graph, Vertex, VisitedSmall0, _SecondSmall=undefined, CurrentPath0) ->
+    CurrentPath = CurrentPath0 ++ [Vertex],
+    {VisitedSmall, SecondSmall} =
+        case is_lower(Vertex) of
+            true ->
+                case ordsets:is_element(Vertex, VisitedSmall0) of
+                    % this cave is small and has been visited, so mark it as second small
+                    true -> {VisitedSmall0, Vertex};
+                    % this cave has not been visited befor, second small stays undefined
+                    false -> {ordsets:add_element(Vertex, VisitedSmall0), undefined}
+                end;
+            false ->
+                {VisitedSmall0, undefined}
+        end,
+    % anything goes really
+    OutNeighbours = out_neighbours(Graph, Vertex),
+    VisitableOutNeihbours = ordsets:subtract(OutNeighbours, ['start']),
+    [
+        dfs2(Graph, Neighbour, VisitedSmall, SecondSmall, CurrentPath)
+        || Neighbour <- VisitableOutNeihbours
+    ];
+% a small cave has been visited twice
+dfs2(Graph, Vertex, VisitedSmall0, SecondSmall, CurrentPath0) ->
+    CurrentPath = CurrentPath0 ++ [Vertex],
+    VisitedSmall = case is_lower(Vertex) of
+        true -> ordsets:add_element(Vertex, VisitedSmall0);
+        false -> VisitedSmall0
+    end,
+    OutNeighbours = out_neighbours(Graph, Vertex),
+    VisitableOutNeihbours = ordsets:subtract(OutNeighbours, VisitedSmall),
+    [
+        dfs2(Graph, Neighbour, VisitedSmall, SecondSmall, CurrentPath)
+        || Neighbour <- VisitableOutNeihbours
+    ].
 
 % %% @doc [start, foo, end, start, foo, bar, end] to [[start, foo, end], [start, foo, bar, end]]
 unpack(PathStream) ->
@@ -48,6 +99,7 @@ dfs(Graph, Vertex, Destination, VisitedSmall0, CurrentPath0) ->
         || Neighbour <- VisitableOutNeihbours
     ].
 
+
 out_neighbours(Graph, Vertex) ->
     ordsets:from_list(digraph:out_neighbours(Graph, Vertex)).
 
@@ -65,15 +117,6 @@ add_edge(Graph, Source, Destination) when
 add_edge(Graph, Source, Destination) ->
     digraph:add_edge(Graph, Source, Destination),
     digraph:add_edge(Graph, Destination, Source).
-
-edges(Graph) ->
-    [
-        {Source, Destination}
-        || {_, Source, Destination, _} <- [
-               digraph:edge(Graph, Edge)
-               || Edge <- digraph:edges(Graph)
-           ]
-    ].
 
 % Parse
 
