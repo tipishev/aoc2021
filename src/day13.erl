@@ -5,20 +5,13 @@
 
 part1(Filename) ->
     {Dots, [Fold | _Folds]} = parse(Filename),
-    {MaxX, MaxY} = find_max(Dots),
-    Dimensions = {MaxX + 1, MaxY + 1},
-    Sheet = sheet_new(Dimensions),
-    MarkedSheet = mark(Dots, Sheet),
+    MarkedSheet = sheet(Dots),
     FoldedSheet = fold(Fold, MarkedSheet),
     count_dots(FoldedSheet).
 
-
 part2(Filename) ->
     {Dots, Folds} = parse(Filename),
-    {MaxX, MaxY} = find_max(Dots),
-    Dimensions = {MaxX + 1, MaxY + 1},
-    Sheet = sheet_new(Dimensions),
-    MarkedSheet = mark(Dots, Sheet),
+    MarkedSheet = sheet(Dots),
     FoldedSheet = lists:foldl(fun fold/2, MarkedSheet, Folds),
     show(FoldedSheet).
 
@@ -51,17 +44,16 @@ tear(Sheet, Y0) ->
     Bottom = lists:nthtail(Y, Sheet),
     {Top, Bottom}.
 
-fold_mark_row(Sheet, Y0) ->
-    Y = Y0 + 1,
-    Row = lists:nth(Y, Sheet),
-    PlusRow = [ Dash || Dash <- lists:duplicate(length(Row), '+')],
-    replace(Y, PlusRow, Sheet).
-
 show(Sheet) ->
     String = lists:flatten([ [ atom_to_list(Cell) || Cell <- Line] ++ "\n" || Line <- Sheet ]),
     io:format("~s~n", [String]).
 
-sheet_new({MaxX, MaxY}) -> lists:duplicate(MaxY, lists:duplicate(MaxX, '.')).
+sheet(Dots) when is_list(Dots) ->
+    {MaxX, MaxY} = find_max(Dots),
+    Dimensions = {MaxX + 1, MaxY + 1},
+    Sheet = sheet(Dimensions),
+    mark(Dots, Sheet);
+sheet({MaxX, MaxY}) -> lists:duplicate(MaxY, lists:duplicate(MaxX, '.')).
 
 mark(Dots, Sheet) when is_list(Dots) ->
     lists:foldl(fun mark/2, Sheet, Dots);
@@ -79,11 +71,9 @@ find_max(Dots) ->
 
 replace(N, Value, List) -> lists:sublist(List, N - 1) ++ [Value] ++ lists:nthtail(N, List).
 
-
 %% stolen from https://stackoverflow.com/a/7855826
 transpose([[]|_]) -> [];
-transpose(M) ->
-    [lists:map(fun hd/1, M) | transpose(lists:map(fun tl/1, M))].
+transpose(M) -> [lists:map(fun hd/1, M) | transpose(lists:map(fun tl/1, M))].
 
 % Parser
 
