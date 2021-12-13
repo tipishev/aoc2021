@@ -9,20 +9,41 @@ part1(Filename) ->
     Dimensions = {MaxX + 1, MaxY + 1},
     Sheet = sheet_new(Dimensions),
     MarkedSheet = mark(Dots, Sheet),
-    % FoldedSheet = fold(MarkedSheet, Fold),
-    {Top, Bottom} = tear(MarkedSheet, 7),
-    show(Top),
-    show(Bottom).
+    FoldedSheet = fold(Fold, MarkedSheet),
+    count_dots(FoldedSheet).
 
 
 part2(Filename) ->
-    parse(Filename).
+    {Dots, Folds} = parse(Filename),
+    {MaxX, MaxY} = find_max(Dots),
+    Dimensions = {MaxX + 1, MaxY + 1},
+    Sheet = sheet_new(Dimensions),
+    MarkedSheet = mark(Dots, Sheet),
+    FoldedSheet = lists:foldl(fun fold/2, MarkedSheet, Folds),
+    show(FoldedSheet).
 
 % Sheet
 
-% fold(Sheet, {y, Y}) ->
-%     % fold_mark_row(Sheet, Y).
-%     [Top, Bottom] = tear(Sheet, Y).
+fold({y, Y}, Sheet) ->
+    {Top, Bottom} = tear(Sheet, Y),
+    FlippedBottom = flip(Bottom),
+    merge(Top, FlippedBottom);
+fold({x, X}, Sheet) ->
+    transpose(fold({y, X}, transpose(Sheet))).
+
+count_dots(Sheet) ->
+    length([Dot || Dot <- lists:flatten(Sheet), Dot =:= '#']).
+
+merge(Sheet1, Sheet2) ->
+   [ merge_rows(Row1, Row2) || {Row1, Row2} <- lists:zip(Sheet1, Sheet2)].
+merge_rows(Row1, Row2) ->
+    [merge_cells(Cell1, Cell2) || {Cell1, Cell2} <- lists:zip(Row1, Row2)].
+
+merge_cells('.', '.') -> '.';
+merge_cells('#', _) -> '#';
+merge_cells(Cell1, Cell2) -> merge_cells(Cell2, Cell1).
+
+flip(Sheet) -> lists:reverse(Sheet).
 
 tear(Sheet, Y0) ->
     Y = Y0 + 1,
