@@ -12,31 +12,24 @@ part2(Filename) ->
 
 % Graph extensions
 
-get_label(Graph, Vertex) ->
-    {Vertex, Label} = digraph:vertex(Graph, Vertex),
-    Label.
-
 count_paths_without_repeating_small_caves(Graph) ->
-    NestedPaths = dfs(Graph, start, _VisitedSmall = ordsets:new(), _CurrentPath = []),
+    NestedPaths = dfs(Graph, start, _CurrentPath = []),
     PathStream = lists:flatten(NestedPaths),
     Paths = unpack(PathStream),
     length(Paths).
 
 % Depth-First Traversal (DFS)
-dfs(_Graph, 'end', _VisitedSmall, CurrentPath) -> CurrentPath;
-dfs(Graph, Vertex, VisitedSmall0, CurrentPath) ->
-    % io:format("Label: ~p~n", [get_label(Graph, Vertex)]),
-    Label = get_label(Graph, Vertex),
-    VisitedSmall = case Label of
-                       {small, _Count} -> ordsets:add_element(Vertex, VisitedSmall0);
-                       _ -> VisitedSmall0
-                   end,
+dfs(_Graph, 'end', CurrentPath) -> CurrentPath;
+dfs(Graph, Vertex, CurrentPath) ->
+    VisitedSmall = set([Cave || Cave <- CurrentPath, type(Cave) == small]),
     OutNeighbours = out_neighbours(Graph, Vertex),
     VisitableOutNeihbours = ordsets:subtract(OutNeighbours, VisitedSmall),
-    [
-        dfs(Graph, Neighbour, VisitedSmall, CurrentPath ++ [Neighbour])
-        || Neighbour <- VisitableOutNeihbours
-    ].
+    [ dfs(Graph, Neighbour, CurrentPath ++ [Neighbour]) || Neighbour <- VisitableOutNeihbours ].
+
+% %% @doc detect cave type from its name
+type(start) -> special;
+type('end') -> special;
+type(Cave) -> case detect_case(Cave) of lower -> small; upper -> big end.
 
 % %% @doc [start, foo, end, start, foo, bar, end] to [[start, foo, end], [start, foo, bar, end]]
 unpack(PathStream) ->
@@ -52,34 +45,17 @@ unpack([Element | PathStream], CurrentPath, Paths) ->
     unpack(PathStream, [Element | CurrentPath], Paths).
 
 out_neighbours(Graph, Vertex) ->
-    ordsets:from_list(digraph:out_neighbours(Graph, Vertex)).
+    set(digraph:out_neighbours(Graph, Vertex)).
 
 add_vertices(Graph, Vertices) ->
-    lists:foreach(fun(Vertex) -> add_vertex(Graph, Vertex) end, Vertices).
-
-% %% @doc add a vertex and label with
-% {Type :: small | big | special, Count :: non_neg_integer | not_applicable}
-add_vertex(Graph, Vertex) ->
-    digraph:add_vertex(Graph, Vertex, label(Vertex)).
-
-label(start) ->
-    {special, not_applicable};
-label('end') ->
-    {special, not_applicable};
-label(Vertex) ->
-    case detect_case(Vertex) of
-        lower -> {small, 0};
-        upper -> {big, not_applicable}
-    end.
+    lists:foreach(fun(Vertex) -> digraph:add_vertex(Graph, Vertex) end, Vertices).
 
 add_edges(Graph, Edges) ->
     lists:foreach(fun([Vertex1, Vertex2]) -> add_edge(Graph, Vertex1, Vertex2) end, Edges).
 
 % unflip incorrect source/destination
-add_edge(Graph, 'end', Vertex1) ->
-    add_edge(Graph, Vertex1, 'end');
-add_edge(Graph, Vertex1, start) ->
-    add_edge(Graph, start, Vertex1);
+add_edge(Graph, 'end', Vertex1) -> add_edge(Graph, Vertex1, 'end');
+add_edge(Graph, Vertex1, start) -> add_edge(Graph, start, Vertex1);
 
 % add just one edge for 'start' and 'end'.
 add_edge(Graph, Vertex1, 'end') ->
@@ -109,6 +85,8 @@ parse_edge_line(Line) ->
 
 % herlpers
 
+set(List) -> ordsets:from_list(List).
+
 detect_case(Atom) ->
     String = atom_to_list(Atom),
     Lower = string:to_lower(String),
@@ -118,3 +96,4 @@ detect_case(Atom) ->
         String =:= Upper -> upper;
         String =/= Lower andalso String =/= Upper -> mixed
     end.
+
