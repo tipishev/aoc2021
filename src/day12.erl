@@ -8,23 +8,38 @@ part1(Filename) ->
     count_paths_without_repeating_small_caves(Graph).
 
 part2(Filename) ->
-    _Graph = parse_graph(Filename).
+    Graph = parse_graph(Filename),
+    count_paths_with_revisit(Graph).
 
 % Graph extensions
 
 count_paths_without_repeating_small_caves(Graph) ->
-    NestedPaths = dfs(Graph, start, _CurrentPath = []),
+    NestedPaths = dfs(Graph, start, _CurrentPath = [], _SecondVisit = disabled),
     PathStream = lists:flatten(NestedPaths),
     Paths = unpack(PathStream),
     length(Paths).
 
-% Depth-First Traversal (DFS)
-dfs(_Graph, 'end', CurrentPath) -> CurrentPath;
-dfs(Graph, Vertex, CurrentPath) ->
+count_paths_with_revisit(Graph) ->
+    NestedPaths = dfs(Graph, start, _CurrentPath = [], _SecondVisit = undefined),
+    PathStream = lists:flatten(NestedPaths),
+    Paths = unpack(PathStream),
+    length(Paths).
+
+% Depth-First Traversal (DFS 2)
+dfs(_Graph, 'end', CurrentPath, _SecondVisit) -> CurrentPath;
+dfs(Graph, Vertex, CurrentPath, _SecondVisit = undefined) ->
+    VisitedSmall = set([Cave || Cave <- CurrentPath, type(Cave) == small]),
+    OutNeighbours = out_neighbours(Graph, Vertex),
+    SmallVisitedNeighbours = ordsets:intersection(VisitedSmall, OutNeighbours),
+    OtherNeighbours = ordsets:subtract(OutNeighbours, SmallVisitedNeighbours),
+    [dfs(Graph, N, CurrentPath ++ [N], N) || N <- SmallVisitedNeighbours]
+    ++
+    [dfs(Graph, N, CurrentPath ++ [N], undefined) || N <- OtherNeighbours];
+dfs(Graph, Vertex, CurrentPath, SecondVisit) when SecondVisit =/= undefined ->
     VisitedSmall = set([Cave || Cave <- CurrentPath, type(Cave) == small]),
     OutNeighbours = out_neighbours(Graph, Vertex),
     VisitableOutNeihbours = ordsets:subtract(OutNeighbours, VisitedSmall),
-    [ dfs(Graph, Neighbour, CurrentPath ++ [Neighbour]) || Neighbour <- VisitableOutNeihbours ].
+    [ dfs(Graph, Neighbour, CurrentPath ++ [Neighbour], SecondVisit) || Neighbour <- VisitableOutNeihbours ].
 
 % %% @doc detect cave type from its name
 type(start) -> special;
