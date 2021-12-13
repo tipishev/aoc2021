@@ -4,19 +4,21 @@
 -export([part1/1, part2/1]).
 
 part1(Filename) ->
-    {Dots, [Fold | _Folds]} = parse(Filename),
+    {Dots, [FirstFold | _RemainingFolds]} = parse(Filename),
     MarkedSheet = sheet(Dots),
-    FoldedSheet = fold(Fold, MarkedSheet),
+    FoldedSheet = fold(FirstFold, MarkedSheet),
     count_dots(FoldedSheet).
 
 part2(Filename) ->
     {Dots, Folds} = parse(Filename),
     MarkedSheet = sheet(Dots),
-    FoldedSheet = lists:foldl(fun fold/2, MarkedSheet, Folds),
+    FoldedSheet = fold(Folds, MarkedSheet),
     show(FoldedSheet).
 
 % Sheet
 
+fold(Folds, Sheet) when is_list(Folds) ->
+    lists:foldl(fun fold/2, Sheet, Folds);
 fold({y, Y}, Sheet) ->
     {Top, Bottom} = tear(Sheet, Y),
     FlippedBottom = flip(Bottom),
