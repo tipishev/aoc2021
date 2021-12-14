@@ -5,13 +5,13 @@
 
 part1(Filename) ->
     {Template, Rules} = parse(Filename),
-    Polymerized = (lists:foldl(fun(_Idx, Acc) -> insert(Acc, Rules) end, Template, one_to(10))),
+    Polymerized = polimerize(Template, Rules, 10),
     Values = maps:values(count(Polymerized)),
     lists:max(Values) - lists:min(Values).
 
 part2(Filename) ->
     {Template, Rules} = parse(Filename),
-    Polymerized = (lists:foldl(fun(_Idx, Acc) -> insert(Acc, Rules) end, Template, one_to(20))),
+    Polymerized = polimerize(Template, Rules, 15),
     Values = maps:values(count(Polymerized)),
     lists:max(Values) - lists:min(Values).
 
@@ -21,6 +21,9 @@ insert(Input = [First | InputTail], Rules) ->
     lists:flatten([First | [[Inserted, Original] || {Inserted, Original} <- lists:zip(Insertions, InputTail)]]).
 
 % Generators
+
+polimerize(Template, Rules, Times) ->
+    lists:foldl(fun(_Idx, Acc) -> insert(Acc, Rules) end, Template, one_to(Times)).
 
 to_pairs([]) -> [];
 to_pairs([_]) -> [];
