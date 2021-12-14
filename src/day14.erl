@@ -15,15 +15,15 @@ part2(Filename) ->
     Values = maps:values(count(Polymerized)),
     lists:max(Values) - lists:min(Values).
 
+% Internal
+
+polimerize(Template, Rules, Times) ->
+    lists:foldl(fun(_Idx, Acc) -> insert(Acc, Rules) end, Template, one_to(Times)).
+
 insert(Input = [First | InputTail], Rules) ->
     Pairs = to_pairs(Input),
     Insertions = [maps:get(Pair, Rules) || Pair <- Pairs],
     lists:flatten([First | [[Inserted, Original] || {Inserted, Original} <- lists:zip(Insertions, InputTail)]]).
-
-% Generators
-
-polimerize(Template, Rules, Times) ->
-    lists:foldl(fun(_Idx, Acc) -> insert(Acc, Rules) end, Template, one_to(Times)).
 
 to_pairs([]) -> [];
 to_pairs([_]) -> [];
