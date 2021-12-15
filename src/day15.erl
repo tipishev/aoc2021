@@ -7,13 +7,29 @@ part1(Filename) ->
     {MaxX, MaxY, Grid} = parse(Filename),
     GetAdjacents = make_adjacent_fun(MaxX, MaxY),
     Graph = build_graph(Grid, GetAdjacents),
-    edges(Graph).
+    dijkstra(Graph, _Source = {1, 1}).
 
 part2(Filename) -> parse(Filename).
 
-edges(Graph) ->
-    Edges = digraph:edges(Graph),
-    [digraph:edge(Graph, Edge) || Edge <- Edges].
+% %% @doc https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
+dijkstra(Graph, Source) ->
+    Set = fun(Vertex, Value) -> digraph:add_vertex(Graph, Vertex, Value) end,
+    Get = fun(Vertex) -> digraph:vertex(Graph, Vertex) end,
+    Vertices = digraph:vertices(Graph),
+    Q = ordsets:from_list(Vertices),
+    [Set(Vertex, #{dist => infinity, prev => undefined})
+     || Vertex <- Vertices],
+    Set(Source, #{dist => 0, prev => undefined}),
+    update(Q, Graph).
+
+update([], Graph) -> Graph;
+update([Vertex | Vertices], Graph) ->
+    Neighbours = digraph:out_neighbours(Graph, Vertex),
+
+
+% edges(Graph) ->
+%     Edges = digraph:edges(Graph),
+%     [digraph:edge(Graph, Edge) || Edge <- Edges].
 
 build_graph(Grid, GetAdjacents) ->
     Cells = maps:keys(Grid),
