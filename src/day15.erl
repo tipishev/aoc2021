@@ -6,25 +6,79 @@
 part1(Filename) ->
     {MaxX, MaxY, Grid} = parse(Filename),
     GetAdjacents = make_adjacent_fun(MaxX, MaxY),
-    Graph = build_graph(Grid, GetAdjacents),
-    dijkstra(Graph, _Source = {1, 1}).
+    Graph0 = build_graph(Grid, GetAdjacents),
+    Graph = dijkstra(Graph0, _Source = {1, 1}),
+    #{dist := Dist}  = get_vertex_label(Graph, {MaxX, MaxY}),
+    Dist.
 
 part2(Filename) -> parse(Filename).
 
 % %% @doc https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
 dijkstra(Graph, Source) ->
-    Set = fun(Vertex, Value) -> digraph:add_vertex(Graph, Vertex, Value) end,
-    Get = fun(Vertex) -> digraph:vertex(Graph, Vertex) end,
     Vertices = digraph:vertices(Graph),
-    Q = ordsets:from_list(Vertices),
-    [Set(Vertex, #{dist => infinity, prev => undefined})
+    Q = Vertices,
+    [set_vertex_label(Graph, Vertex, #{dist => infinity, prev => undefined})
      || Vertex <- Vertices],
-    Set(Source, #{dist => 0, prev => undefined}),
-    update(Q, Graph).
+    set_vertex_label(Graph, Source, #{dist => 0, prev => undefined}),
+    get_vertex_label(Graph, Source),
+    loop(Graph, Q).
 
-update([], Graph) -> Graph;
-update([Vertex | Vertices], Graph) ->
-    Neighbours = digraph:out_neighbours(Graph, Vertex),
+loop(Graph, []) -> Graph;
+loop(Graph, Q0) ->
+    U = find_min_dist_vertex(Graph, Q0),
+    Q = lists:delete(U, Q0),
+    DistU = get_dist(Graph, U),
+    NeighboursU = digraph:out_neighbours(Graph, U),
+    [begin
+         Alt = DistU + get_edge_label(Graph, {U, V}),
+         DistV = get_dist(Graph, V),
+         case Alt < DistV of
+             true -> set_vertex_label(Graph, V, #{dist => Alt, prev => U});
+             false -> ok
+         end
+     end || V <- NeighboursU],
+    loop(Graph, Q).
+
+
+    % Q1 = lists:delete(U, Q0),
+    % NeighboursOfU = digraph:out_neighbours(Graph, U),
+
+get_edge_label(Graph, {Vertex1, Vertex2}) ->
+    Edges = [digraph:edge(Graph, Edge) || Edge <- digraph:edges(Graph, Vertex1)],
+    [Label] = ([
+        Label
+        || {_, VertexFrom, VertexTo, Label} <- Edges,
+           VertexFrom =:= Vertex1,
+           VertexTo =:= Vertex2
+    ]),
+    Label.
+
+
+
+set_vertex_label(Graph, Vertex, Value) ->
+    digraph:add_vertex(Graph, Vertex, Value).
+
+get_dist(Graph, Vertex) ->
+    #{dist := Dist} = get_vertex_label(Graph, Vertex),
+    Dist.
+
+get_vertex_label(Graph, Vertex) ->
+    {Vertex, Label} = digraph:vertex(Graph, Vertex),
+    Label.
+
+find_min_dist_vertex(Graph, Vertices) ->
+    {_MinDist, Vertex} = hd(lists:sort([
+        begin
+            Dist = get_dist(Graph, Vertex),
+            {Dist, Vertex}
+        end
+        || Vertex <- Vertices
+    ])),
+    Vertex.
+
+% update([], Graph) -> Graph;
+% update([Vertex | Vertices], Graph) ->
+%     Neighbours = digraph:out_neighbours(Graph, Vertex),
 
 
 % edges(Graph) ->
