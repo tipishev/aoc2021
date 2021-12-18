@@ -39,10 +39,6 @@ loop(Graph, Q0) ->
      end || V <- NeighboursU],
     loop(Graph, Q).
 
-
-    % Q1 = lists:delete(U, Q0),
-    % NeighboursOfU = digraph:out_neighbours(Graph, U),
-
 get_edge_label(Graph, {Vertex1, Vertex2}) ->
     Edges = [digraph:edge(Graph, Edge) || Edge <- digraph:edges(Graph, Vertex1)],
     [Label] = ([
@@ -52,8 +48,6 @@ get_edge_label(Graph, {Vertex1, Vertex2}) ->
            VertexTo =:= Vertex2
     ]),
     Label.
-
-
 
 set_vertex_label(Graph, Vertex, Value) ->
     digraph:add_vertex(Graph, Vertex, Value).
@@ -75,15 +69,6 @@ find_min_dist_vertex(Graph, Vertices) ->
         || Vertex <- Vertices
     ])),
     Vertex.
-
-% update([], Graph) -> Graph;
-% update([Vertex | Vertices], Graph) ->
-%     Neighbours = digraph:out_neighbours(Graph, Vertex),
-
-
-% edges(Graph) ->
-%     Edges = digraph:edges(Graph),
-%     [digraph:edge(Graph, Edge) || Edge <- Edges].
 
 build_graph(Grid, GetAdjacents) ->
     Cells = maps:keys(Grid),
