@@ -44,9 +44,10 @@ decode(continuous, <<1:1, Payload:4, Continuation/bits>>, Acc) ->
 
 % decode/4
 
-decode(subpackets_length, SubpacketsLength, _Payload, PacketAcc) when SubpacketsLength =< 0 ->
+decode(subpackets_length, SubpacketsLength, _Payload, PacketAcc) when SubpacketsLength < 4 ->
     PacketAcc;
 decode(subpackets_length, SubpacketsLength, Payload, PacketAcc) ->
+    io:format("~p~p~p~p~n", [subpackets_length, SubpacketsLength, Payload, PacketAcc]),
     Packet = #{tail := Tail, consumed := Consumed} = decode(Payload),
     decode(subpackets_length, SubpacketsLength - Consumed, Tail, [Packet | PacketAcc]).
 
