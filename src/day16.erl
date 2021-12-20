@@ -12,38 +12,39 @@ part1(Filename) ->
 part2(Filename) ->
     parse(Filename).
 
+packet_type(4) -> literal;
+packet_type(_AnythingBut4) -> operator.
+
+%% decode/1
 decode(<<Version:3, Type:3, Payload/bits>>) ->
     PacketType = packet_type(Type),
-    DecodedPacket = decode(PacketType, Payload),
-    #{version => Version, packet_type => PacketType, payload => DecodedPacket}.
+    #{decoded := Decoded, tail := Tail} = decode(PacketType, Payload),
+    #{version => Version, packet_type => PacketType, decoded => Decoded, tail => Tail}.
 
-decode(operator, <<LengthTypeId:1, SubpacketsLength: 15, _Payload/bits>>)
- when LengthTypeId =:= 0 ->
-    {subpackets_length, SubpacketsLength};
-decode(operator, <<LengthTypeId:1, _NumberOfSubpackets: 11, Payload/bits>>)
-  when LengthTypeId =:= 1 ->
-    % {number_of_subpackets, NumberOfSubpackets};
-    decode(Payload);
+%% decode/2
+decode(operator, <<0:1, SubpacketsLength: 15, Payload/bits>>) ->
+    decode(subpackets_length, SubpacketsLength, Payload);
+decode(operator, <<1:1, SubpacketsCount: 11, Payload/bits>>) ->
+    decode(subpackets_count, SubpacketsCount, Payload);
 decode(literal, Payload) ->
-    binary:decode_unsigned(pad_to_bytes(decode_continuous(Payload, _Acc = <<>>))).
+    #{decoded := Decoded, tail := Tail} = decode(continuous, Payload, _Acc = <<>>),
+    Literal = binary:decode_unsigned(pad_to_bytes(Decoded)),
+    #{decoded => Literal, tail => Tail}.
 
-decode_continuous(<<ContinuationBit:1, Payload:4, Rest/bits>>, Acc0) ->
-    Acc = <<Acc0/bitstring, Payload:4>>,
-    case ContinuationBit of
-        0 -> Acc;
-        1 -> decode_continuous(Rest, Acc)
-    end.
+% decode/3
+decode(subpackets_length, SubpacketsLength, Payload) ->
+    {subpackets_length, SubpacketsLength, bit_size(Payload)};
+decode(subpackets_count, SubpacketsCount, Payload) ->
+    {subpackets_count, SubpacketsCount, Payload};
+decode(continuous, <<0:1, Payload:4, Tail/bits>>, Acc) ->
+    #{decoded => <<Acc/bitstring, Payload:4>>, tail => Tail};
+decode(continuous, <<1:1, Payload:4, Continuation/bits>>, Acc) ->
+    decode(continuous, Continuation, <<Acc/bitstring, Payload:4>>).
 
+% %% @doc turn a bit string into bytes by prepending enough leading zeros.
 pad_to_bytes(Bitstring) when is_bitstring(Bitstring) ->
-    BitSize = bit_size(Bitstring),
-    PadLength = 8 - BitSize rem 8,
+    PadLength = 8 - bit_size(Bitstring) rem 8,
     <<0:PadLength, Bitstring/bits>>.
-
-
-packet_type(2) -> operator;
-packet_type(3) -> operator;
-packet_type(4) -> literal;
-packet_type(6) -> operator.
 
 print(Binary) -> lists:flatten([integer_to_list(Digit) || <<Digit:1>> <= Binary]).
 
