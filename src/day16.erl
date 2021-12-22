@@ -41,32 +41,39 @@ decode(operator, <<0:1, Length:15, SubpacketsPayload:Length/bits, Tail/bits>>) -
     Packets = decode_length(Length, SubpacketsPayload),
     {Packets, Tail};
 decode(operator, <<1:1, Count:11, Payload/bits>>) ->
-    decode(count, Count, Payload);
+    {Packets, Tail} = decode_count(Count, Payload),
+    {Packets, Tail};
 decode(literal, Payload) ->
     {Decoded, Tail} = decode(continuous, Payload, _Acc = <<>>),
     Literal = binary:decode_unsigned(pad_to_bytes(Decoded)),
     {Literal, Tail}.
 
 % decode/3
-decode(count, SubpacketsCount, Payload) ->
-    {not_implemented, subpackets_count, SubpacketsCount, Payload};
 decode(continuous, <<0:1, Payload:4, Tail/bits>>, Acc) ->
     {<<Acc/bitstring, Payload:4>>, Tail};
 decode(continuous, <<1:1, Payload:4, Continuation/bits>>, Acc) ->
     decode(continuous, Continuation, <<Acc/bitstring, Payload:4>>).
 
-% the trash bits at the end should not be discarded
 -spec decode_length(Length :: non_neg_integer(), Payload :: bits()) -> Packets :: [packet()].
 decode_length(Length, Payload) ->
     decode_length(Length, Payload, _Packets = []).
 
-% decode/4
+
+-spec decode_count(Count :: non_neg_integer(), Payload :: bits()) -> Packets :: [packet()].
+decode_count(Count, Payload) ->
+    decode_count(Count, Payload, _Packets=[]).
 
 decode_length(RemainingLength, _Payload, Packets) when RemainingLength < ?MIN_PACKET_SIZE ->
     Packets;
 decode_length(_RemainingLength, Payload, Packets) ->
     {Packet, Tail} = decode(Payload),
     decode_length(bit_size(Tail), Tail, [Packet | Packets]).
+
+decode_count(Count, Payload, Packets) when length(Packets) =:= Count ->
+    {Packets, Payload};
+decode_count(Count, Payload, Packets) ->
+    {Packet, Tail} = decode(Payload),
+    decode_count(Count, Tail, [Packet | Packets]).
 
 % %% @doc turn a bit string into bytes by prepending enough leading zeros.
 pad_to_bytes(Bitstring) when is_bitstring(Bitstring) ->
