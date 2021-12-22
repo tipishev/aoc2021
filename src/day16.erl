@@ -6,6 +6,9 @@
 %% debug
 -export([decode_hex/1, print/1]).
 
+% VVV + TTT + 0AAAA
+-define(MIN_PACKET_SIZE, 11).
+
 %%% types
 
 -type packet() :: map().
@@ -33,12 +36,11 @@ decode(<<Version:3, Type:3, Payload/bits>>) ->
 
 %% decode/2
 -spec decode(PacketType :: operator | literal, Payload :: bits()) ->
-    { [packet()] | integer(), Tail :: bits()}.
-decode(operator, <<0:1, Length: 15, SubpacketsPayload:Length/bits, Tail/bits>>) ->
-    io:format("Length: ~p, SubpacketsPayload: ~p~n", [Length, SubpacketsPayload]),
+    {[packet()] | integer(), Tail :: bits()}.
+decode(operator, <<0:1, Length:15, SubpacketsPayload:Length/bits, Tail/bits>>) ->
     Packets = decode_length(Length, SubpacketsPayload),
     {Packets, Tail};
-decode(operator, <<1:1, Count: 11, Payload/bits>>) ->
+decode(operator, <<1:1, Count:11, Payload/bits>>) ->
     decode(count, Count, Payload);
 decode(literal, Payload) ->
     {Decoded, Tail} = decode(continuous, Payload, _Acc = <<>>),
@@ -60,10 +62,9 @@ decode_length(Length, Payload) ->
 
 % decode/4
 
-% FIXME stop condition is most likely incorrect
-decode_length(RemainingLength, _Payload, Packets) when RemainingLength < 4 ->
+decode_length(RemainingLength, _Payload, Packets) when RemainingLength < ?MIN_PACKET_SIZE ->
     Packets;
-decode_length(RemainingLength, Payload, Packets) ->
+decode_length(_RemainingLength, Payload, Packets) ->
     {Packet, Tail} = decode(Payload),
     decode_length(bit_size(Tail), Tail, [Packet | Packets]).
 
