@@ -13,24 +13,32 @@
 
 -type packet() :: map().
 -type bits() :: bitstring().
+-type packet_type() :: sum | product | minimum | maximum | literal | greater_than | less_than | equal_to.
 
 part1(Filename) ->
     sum_versions(parse(Filename)).
 
-part2(Filename) ->
-    parse(Filename).
+sum_versions(#{packet_type := literal, version := Version}, Acc) ->
+    Acc + Version;
+sum_versions(#{packet_type := _Operator, version := Version, decoded := Packets},
+             Acc) ->
+    Acc + Version + lists:sum([sum_versions(Packet, 0) || Packet <- Packets]).
 
 sum_versions(Hex) ->
     sum_versions(decode_hex(Hex), _Acc=0).
 
-sum_versions(#{packet_type := literal, version := Version}, Acc) ->
-    Acc + Version;
-sum_versions(#{packet_type := operator, version := Version, decoded := Packets},
-             Acc) ->
-    Acc + Version + lists:sum([sum_versions(Packet, 0) || Packet <- Packets]).
+part2(Filename) ->
+    parse(Filename).
 
+-spec packet_type(Type :: 0..7) -> packet_type().
+packet_type(0) -> sum;
+packet_type(1) -> product;
+packet_type(2) -> minimum;
+packet_type(3) -> maximum;
 packet_type(4) -> literal;
-packet_type(_AnythingBut4) -> operator.
+packet_type(5) -> greater_than;
+packet_type(6) -> less_than;
+packet_type(7) -> equal_to.
 
 decode_hex(Hex) ->
     {Decoded, _Tail} = decode(binary:decode_hex(Hex)),
@@ -45,18 +53,18 @@ decode(<<Version:3, Type:3, Payload/bits>>) ->
     {Packet, Tail}.
 
 %% decode/2
--spec decode(PacketType :: operator | literal, Payload :: bits()) ->
+-spec decode(PacketType :: packet_type(), Payload :: bits()) ->
     {[packet()] | integer(), Tail :: bits()}.
-decode(operator, <<0:1, Length:15, SubpacketsPayload:Length/bits, Tail/bits>>) ->
-    Packets = decode_length(Length, SubpacketsPayload),
-    {Packets, Tail};
-decode(operator, <<1:1, Count:11, Payload/bits>>) ->
-    {Packets, Tail} = decode_count(Count, Payload),
-    {Packets, Tail};
 decode(literal, Payload) ->
     {Decoded, Tail} = decode_literal(Payload, _Acc = <<>>),
     Literal = binary:decode_unsigned(pad_to_bytes(Decoded)),
-    {Literal, Tail}.
+    {Literal, Tail};
+decode(_Operator, <<0:1, Length:15, SubpacketsPayload:Length/bits, Tail/bits>>) ->
+    Packets = decode_length(Length, SubpacketsPayload),
+    {Packets, Tail};
+decode(_Operator, <<1:1, Count:11, Payload/bits>>) ->
+    {Packets, Tail} = decode_count(Count, Payload),
+    {Packets, Tail}.
 
 %%% Integer literal with continuation bit
 
