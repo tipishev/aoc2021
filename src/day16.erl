@@ -24,7 +24,8 @@ packet_type(4) -> literal;
 packet_type(_AnythingBut4) -> operator.
 
 decode_hex(Hex) ->
-    decode(binary:decode_hex(Hex)).
+    {Decoded, _Tail} = decode(binary:decode_hex(Hex)),
+    Decoded.
 
 %% decode/1
 -spec decode(PacketData :: bits()) -> {Packet :: packet(), Tail :: bits()}.
