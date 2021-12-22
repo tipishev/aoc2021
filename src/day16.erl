@@ -54,30 +54,34 @@ decode(operator, <<1:1, Count:11, Payload/bits>>) ->
     {Packets, Tail} = decode_count(Count, Payload),
     {Packets, Tail};
 decode(literal, Payload) ->
-    {Decoded, Tail} = decode(continuous, Payload, _Acc = <<>>),
+    {Decoded, Tail} = decode_literal(Payload, _Acc = <<>>),
     Literal = binary:decode_unsigned(pad_to_bytes(Decoded)),
     {Literal, Tail}.
 
-% decode/3
-decode(continuous, <<0:1, Payload:4, Tail/bits>>, Acc) ->
+%%% Integer literal with continuation bit
+
+decode_literal(<<0:1, Payload:4, Tail/bits>>, Acc) ->
     {<<Acc/bitstring, Payload:4>>, Tail};
-decode(continuous, <<1:1, Payload:4, Continuation/bits>>, Acc) ->
-    decode(continuous, Continuation, <<Acc/bitstring, Payload:4>>).
+decode_literal(<<1:1, Payload:4, Continuation/bits>>, Acc) ->
+    decode_literal(Continuation, <<Acc/bitstring, Payload:4>>).
+
+%%% Length-based list
 
 -spec decode_length(Length :: non_neg_integer(), Payload :: bits()) -> Packets :: [packet()].
 decode_length(Length, Payload) ->
     decode_length(Length, Payload, _Packets = []).
-
-
--spec decode_count(Count :: non_neg_integer(), Payload :: bits()) -> Packets :: [packet()].
-decode_count(Count, Payload) ->
-    decode_count(Count, Payload, _Packets=[]).
 
 decode_length(RemainingLength, _Payload, Packets) when RemainingLength < ?MIN_PACKET_SIZE ->
     Packets;
 decode_length(_RemainingLength, Payload, Packets) ->
     {Packet, Tail} = decode(Payload),
     decode_length(bit_size(Tail), Tail, [Packet | Packets]).
+
+%%% Count-based list
+
+-spec decode_count(Count :: non_neg_integer(), Payload :: bits()) -> Packets :: [packet()].
+decode_count(Count, Payload) ->
+    decode_count(Count, Payload, _Packets=[]).
 
 decode_count(Count, Payload, Packets) when length(Packets) =:= Count ->
     {Packets, Payload};
