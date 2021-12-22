@@ -4,7 +4,7 @@
 -export([part1/1, part2/1]).
 
 %% debug
--export([decode_hex/1, print/1, sum_versions/1]).
+-export([decode_hex/1, print/1, sum_versions/1, calculate/1, product/1]).
 
 % VVV + TTT + 0AAAA
 -define(MIN_PACKET_SIZE, 11).
@@ -20,15 +20,46 @@ part1(Filename) ->
 
 sum_versions(#{packet_type := literal, version := Version}, Acc) ->
     Acc + Version;
-sum_versions(#{packet_type := _Operator, version := Version, decoded := Packets},
-             Acc) ->
+sum_versions(
+    #{packet_type := _Operator, version := Version, decoded := Packets},
+    Acc
+) ->
     Acc + Version + lists:sum([sum_versions(Packet, 0) || Packet <- Packets]).
 
 sum_versions(Hex) ->
-    sum_versions(decode_hex(Hex), _Acc=0).
+    sum_versions(decode_hex(Hex), _Acc = 0).
 
 part2(Filename) ->
-    parse(Filename).
+    calculate(parse(Filename)).
+
+calculate(Hex) ->
+    do_calculate(decode_hex(Hex)).
+
+do_calculate(#{packet_type := literal, decoded := Literal}) ->
+    Literal;
+do_calculate(#{packet_type := sum, decoded := Packets}) ->
+    lists:sum([do_calculate(Packet) || Packet <- Packets]);
+do_calculate(#{packet_type := product, decoded := Packets}) ->
+    product([do_calculate(Packet) || Packet <- Packets]);
+do_calculate(#{packet_type := minimum, decoded := Packets}) ->
+    lists:min([do_calculate(Packet) || Packet <- Packets]);
+do_calculate(#{packet_type := maximum, decoded := Packets}) ->
+    lists:max([do_calculate(Packet) || Packet <- Packets]);
+do_calculate(#{packet_type := less_than, decoded := [PacketA, PacketB]}) ->
+    case do_calculate(PacketA) > do_calculate(PacketB) of
+        true -> 1;
+        false -> 0
+    end;
+do_calculate(#{packet_type := greater_than, decoded := [PacketA, PacketB]}) ->
+    case do_calculate(PacketA) < do_calculate(PacketB) of
+        true -> 1;
+        false -> 0
+    end;
+do_calculate(#{packet_type := equal_to, decoded := [PacketA, PacketB]}) ->
+    case do_calculate(PacketA) =:= do_calculate(PacketB) of
+        true -> 1;
+        false -> 0
+    end.
 
 -spec packet_type(Type :: 0..7) -> packet_type().
 packet_type(0) -> sum;
@@ -53,8 +84,7 @@ decode(<<Version:3, Type:3, Payload/bits>>) ->
     {Packet, Tail}.
 
 %% decode/2
--spec decode(PacketType :: packet_type(), Payload :: bits()) ->
-    {[packet()] | integer(), Tail :: bits()}.
+-spec decode(PacketType :: packet_type(), Payload :: bits()) -> {[packet()] | integer(), Tail :: bits()}.
 decode(literal, Payload) ->
     {Decoded, Tail} = decode_literal(Payload, _Acc = <<>>),
     Literal = binary:decode_unsigned(pad_to_bytes(Decoded)),
@@ -89,7 +119,7 @@ decode_length(_RemainingLength, Payload, Packets) ->
 
 -spec decode_count(Count :: non_neg_integer(), Payload :: bits()) -> Packets :: [packet()].
 decode_count(Count, Payload) ->
-    decode_count(Count, Payload, _Packets=[]).
+    decode_count(Count, Payload, _Packets = []).
 
 decode_count(Count, Payload, Packets) when length(Packets) =:= Count ->
     {Packets, Payload};
@@ -108,3 +138,6 @@ parse(Filename) ->
     {ok, FileContent} = file:read_file(Filename),
     [HexString] = string:lexemes(FileContent, "\n"),
     HexString.
+
+product([]) -> 1;
+product([H | T]) -> H * product(T).
