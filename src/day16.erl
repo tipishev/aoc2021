@@ -6,6 +6,11 @@
 %% debug
 -export([decode_hex/1, print/1]).
 
+%%% types
+
+-type packet() :: map().
+-type bits() :: bitstring().
+
 part1(Filename) ->
     parse(Filename).
 
@@ -19,42 +24,48 @@ decode_hex(Hex) ->
     decode(binary:decode_hex(Hex)).
 
 %% decode/1
--spec decode(PacketData :: bitstring()) -> {Packet :: map(), Tail :: bitstring()}.
-decode(PacketData) ->
-    <<Version:3, Type:3, Payload/bits>> = PacketData,
+-spec decode(PacketData :: bits()) -> {Packet :: packet(), Tail :: bits()}.
+decode(<<Version:3, Type:3, Payload/bits>>) ->
     PacketType = packet_type(Type),
     {Decoded, Tail} = decode(PacketType, Payload),
     Packet = #{version => Version, packet_type => PacketType, decoded => Decoded},
     {Packet, Tail}.
 
 %% decode/2
-decode(operator, <<0:1, Length: 15, Subpackets: Length, _Tail/bits>>) ->
-    decode(length, Length, Subpackets);
+-spec decode(PacketType :: operator | literal, Payload :: bits()) ->
+    { [packet()] | integer(), Tail :: bits()}.
+decode(operator, <<0:1, Length: 15, SubpacketsPayload:Length/bits, Tail/bits>>) ->
+    io:format("Length: ~p, SubpacketsPayload: ~p~n", [Length, SubpacketsPayload]),
+    Packets = decode_length(Length, SubpacketsPayload),
+    {Packets, Tail};
 decode(operator, <<1:1, Count: 11, Payload/bits>>) ->
     decode(count, Count, Payload);
 decode(literal, Payload) ->
-    #{decoded := Decoded, tail := Tail} = decode(continuous, Payload, _Acc = <<>>),
+    {Decoded, Tail} = decode(continuous, Payload, _Acc = <<>>),
     Literal = binary:decode_unsigned(pad_to_bytes(Decoded)),
-    Consumed = bit_size(Payload) - bit_size(Tail),
-    #{decoded => Literal, consumed => Consumed, tail => Tail}.
+    {Literal, Tail}.
 
 % decode/3
-decode(length, Length, Payload) ->
-    decode(length, Length, Payload, _PacketAcc = []);
 decode(count, SubpacketsCount, Payload) ->
     {not_implemented, subpackets_count, SubpacketsCount, Payload};
-
 decode(continuous, <<0:1, Payload:4, Tail/bits>>, Acc) ->
-    #{decoded => <<Acc/bitstring, Payload:4>>, tail => Tail};
+    {<<Acc/bitstring, Payload:4>>, Tail};
 decode(continuous, <<1:1, Payload:4, Continuation/bits>>, Acc) ->
     decode(continuous, Continuation, <<Acc/bitstring, Payload:4>>).
 
+% the trash bits at the end should not be discarded
+-spec decode_length(Length :: non_neg_integer(), Payload :: bits()) -> Packets :: [packet()].
+decode_length(Length, Payload) ->
+    decode_length(Length, Payload, _Packets = []).
+
 % decode/4
-decode(length, RemainingLength, _Payload, Packets) when RemainingLength < 4 ->
+
+% FIXME stop condition is most likely incorrect
+decode_length(RemainingLength, _Payload, Packets) when RemainingLength < 4 ->
     Packets;
-decode(length, RemainingLength, Payload, Packets) ->
-    {Packet = #{length := PacketLength}, Tail} = decode(Payload),
-    decode(length, RemainingLength - PacketLength, Tail, [Packet | Packets]).
+decode_length(RemainingLength, Payload, Packets) ->
+    {Packet, Tail} = decode(Payload),
+    decode_length(bit_size(Tail), Tail, [Packet | Packets]).
 
 % %% @doc turn a bit string into bytes by prepending enough leading zeros.
 pad_to_bytes(Bitstring) when is_bitstring(Bitstring) ->
