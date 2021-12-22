@@ -4,7 +4,7 @@
 -export([part1/1, part2/1]).
 
 %% debug
--export([decode_hex/1, print/1]).
+-export([decode_hex/1, print/1, sum_versions/1]).
 
 % VVV + TTT + 0AAAA
 -define(MIN_PACKET_SIZE, 11).
@@ -15,10 +15,19 @@
 -type bits() :: bitstring().
 
 part1(Filename) ->
-    parse(Filename).
+    sum_versions(parse(Filename)).
 
 part2(Filename) ->
     parse(Filename).
+
+sum_versions(Hex) ->
+    sum_versions(decode_hex(Hex), _Acc=0).
+
+sum_versions(#{packet_type := literal, version := Version}, Acc) ->
+    Acc + Version;
+sum_versions(#{packet_type := operator, version := Version, decoded := Packets},
+             Acc) ->
+    Acc + Version + lists:sum([sum_versions(Packet, 0) || Packet <- Packets]).
 
 packet_type(4) -> literal;
 packet_type(_AnythingBut4) -> operator.
