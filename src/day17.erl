@@ -8,17 +8,14 @@ part1(Filename) ->
     Target = corners({LowX, HighX}, {LowY, HighY}),
     Grid0 = grid(),
     Grid1 = add(Grid0, {0, 0}, 'S'),
-    Grid = add_rectangle(Grid1, {LowX, HighX}, {LowY, HighY}, 'T'),
+    Grid2 = add_rectangle(Grid1, {LowX, HighX}, {LowY, HighY}, 'T'),
 
-    Velocities = [
-        {Dx, Dy}
-        || Dx <- lists:seq(1, HighX),
-           Dy <- lists:reverse(lists:seq(100, 1000))
-    ],
+    Grid = step(Grid2, {0, 0}, {60, 3}, Target),
+    draw(Grid).
 
-    DoesHit = fun(Velocity) -> does_hit(Grid, Velocity, Target) end,
-
-    maximize_dy(Velocities, DoesHit).
+    % Velocities = [ {Dx, Dy} || Dx <- lists:seq(1, 60), Dy <- lists:reverse(lists:seq(1, 10))],
+    % DoesHit = fun(Velocity) -> does_hit(Grid, Velocity, Target) end,
+    % maximize_dy(Velocities, DoesHit).
 
 maximize_dy([], _DoesHit) ->
     false;
@@ -40,8 +37,18 @@ corners({LowX, HighX}, {LowY, HighY}) -> [{X, Y} || X <- [LowX, HighX], Y <- [Lo
 
 is_closer(OldPosition, NewPosition, Targets) when is_list(Targets) ->
     lists:any(fun(Target) -> is_closer(OldPosition, NewPosition, Target) end, Targets);
+% is_closer(OldPosition = {X0, Y0}, NewPosition = {X1, Y1}, Target = {X, Y}) ->
 is_closer(OldPosition, NewPosition, Target) ->
-    distance(NewPosition, Target) < distance(OldPosition, Target) + 700.
+    % DistX0 = abs(X - X0),
+    % DistX1 = abs(X - X1),
+    % DistY0 = abs(Y - Y0),
+    % DistY1 = abs(Y - Y1),
+    % DistX1 =< DistX0 orelse DistY1 =< DistY0.
+    OldDistance = distance(OldPosition, Target),
+    NewDistance = distance(NewPosition, Target),
+    io:format("OldDistance: ~p, NewDistance: ~p~n", [OldDistance, NewDistance]),
+    NewDistance =< OldDistance.
+
 
 distance({X1, Y1}, {X2, Y2}) ->
     math:sqrt((X1 - X2) * (X1 - X2) + (Y1 - Y2) * (Y1 - Y2)).
@@ -88,18 +95,19 @@ draw(Grid, {LowX, HighX}, {LowY, HighY}) ->
     ),
     io:format("~s~n", [String]).
 
-step(Grid0, {X0, Y0}, {Dx0, Dy0}, Target) ->
-    Position = {X, Y} = {X0 + Dx0, Y0 + Dy0},
-    case is_closer({X0, Y0}, Position, Target) of
+step(Grid0, OldPosition, OldVelocity, Target) ->
+    NewPosition = update_position(OldPosition, OldVelocity),
+    Grid = hit(Grid0, NewPosition),
+    case is_closer(OldPosition, NewPosition, Target) of
         true ->
-            Grid = hit(Grid0, Position),
-            {Dx, Dy} = update_velocity({Dx0, Dy0}),
-            step(Grid, {X, Y}, {Dx, Dy}, Target);
+            % FIXME terminate upon hit
+            NewVelocity = update_velocity(OldVelocity),
+            step(Grid, NewPosition, NewVelocity, Target);
         false ->
-            Grid0
+            Grid
     end.
 
-% is_hit(Target, {X, Y}) ->
+update_position({X0, Y0}, {Dx, Dy}) -> {X0 + Dx, Y0 + Dy}.
 
 update_velocity({Dx0, Dy0}) ->
     Dx =
