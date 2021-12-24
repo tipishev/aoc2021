@@ -5,16 +5,27 @@
 
 part1(Filename) ->
     {{x, LowX, HighX}, {y, LowY, HighY}} = parse(Filename),
+    Target = corners({LowX, HighX}, {LowY, HighY}),
     Grid0 = grid(),
     Grid1 = add(Grid0, {0, 0}, 'S'),
     Grid2 = add_rectangle(Grid1, {LowX, HighX}, {LowY, HighY}, 'T'),
-    Grid  = step(Grid2, _Position = {0, 0}, _Velocity={6, 9}, _Steps=100),
+    Grid  = step(Grid2, _Position = {0, 0}, _Velocity={6, 9}, Target),
     draw(Grid).
 
 part2(Filename) ->
     parse(Filename).
 
 %%% Grid
+
+corners({LowX, HighX}, {LowY, HighY}) -> [{X, Y} || X <- [LowX, HighX], Y <- [LowY, HighY]].
+
+is_closer(OldPosition, NewPosition, Targets) when is_list(Targets) ->
+    lists:any(fun(Target) -> is_closer(OldPosition, NewPosition, Target) end, Targets);
+is_closer(OldPosition,NewPosition, Target) ->
+    distance(NewPosition, Target) < distance(OldPosition, Target) + 10.
+
+distance({X1, Y1}, {X2, Y2}) ->
+    math:sqrt((X1-X2)*(X1-X2) + (Y1 - Y2)*(Y1-Y2)).
 
 grid() -> #{}.
 
@@ -47,20 +58,22 @@ draw(Grid, {LowX, HighX}, {LowY, HighY}) ->
     ),
     io:format("~s~n", [String]).
 
-step(Grid, _Position, _Velocity, _Steps = 0) ->
-    Grid;
-step(Grid0, {X0, Y0}, {Dx0, Dy0}, Steps) ->
+step(Grid0, {X0, Y0}, {Dx0, Dy0}, Target) ->
     X = X0 + Dx0,
     Y = Y0 + Dy0,
-    Dx =
-        case Dx0 of
-            Val when Val > 0 -> Val - 1;
-            Val when Val < 0 -> Val + 1;
-            0 -> 0
-        end,
-    Dy = Dy0 - 1,
-    Grid = add(Grid0, {X, Y}, '#'),
-    step(Grid, {X, Y}, {Dx, Dy}, Steps - 1).
+    case is_closer({X0, Y0}, {X, Y}, Target) of
+        true ->
+            Dx =
+                if
+                    Dx0 > 0 -> Dx0 - 1;
+                    Dx0 < 0 -> Dx0 + 1;
+                    Dx0 =:= 0 -> 0
+                end,
+            Dy = Dy0 - 1,
+            Grid = add(Grid0, {X, Y}, '#'),
+            step(Grid, {X, Y}, {Dx, Dy}, Target);
+        false -> Grid0
+    end.
 
 %%% Parser
 
