@@ -10,18 +10,18 @@ part1(Filename) ->
     Grid1 = add(Grid0, {0, 0}, 'S'),
     Grid2 = add_rectangle(Grid1, {LowX, HighX}, {LowY, HighY}, 'T'),
 
-    Grid = step(Grid2, {0, 0}, {60, 3}, Target),
-    draw(Grid).
+    % Grid = step(Grid2, {0, 0}, {6, 3}, Target),
+    % draw(Grid).
 
-    % Velocities = [ {Dx, Dy} || Dx <- lists:seq(1, 60), Dy <- lists:reverse(lists:seq(1, 10))],
-    % DoesHit = fun(Velocity) -> does_hit(Grid, Velocity, Target) end,
-    % maximize_dy(Velocities, DoesHit).
+    Velocities = [{Dx, Dy} || Dx <- lists:seq(1, 150), Dy <- lists:reverse(lists:seq(1, 200))],
+    DoesHit = fun(Velocity) -> does_hit(Grid2, Velocity, Target) end,
+    maximize_dy(Velocities, DoesHit).
 
 maximize_dy([], _DoesHit) ->
     false;
-maximize_dy([Velocity = {_Dx, Dy} | Velocities], DoesHit) ->
+maximize_dy([Velocity = {Dx, Dy} | Velocities], DoesHit) ->
     case DoesHit(Velocity) of
-        true -> Dy;
+        true -> {Dx, Dy};
         false -> maximize_dy(Velocities, DoesHit)
     end.
 
